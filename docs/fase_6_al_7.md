@@ -14,12 +14,31 @@ El avance actual cubre:
 
 - Fase 6 completa: base compartida para Edge Functions.
 - Fase 7.1 completa: Edge Function `health-check`.
-- Fase 7.2 implementada y desplegada: Edge Function `create-case`.
-- Fase 7.2 pendiente de prueba feliz completa por falta del secreto remoto `CASE_TOKEN_SECRET`.
-- Fase 7.3 implementada y desplegada: Edge Function `submit-questionnaire`.
-- Fase 7.3 pendiente de prueba feliz completa porque depende de un `case_code + case_token` real generado por `create-case`.
+- Fase 7.2 completa, desplegada y validada: Edge Function `create-case`.
+- Fase 7.3 completa, desplegada y validada: Edge Function `submit-questionnaire`.
+- Fase 7.4 completa, desplegada y validada: Edge Function `request-image-upload`.
+- Fase 7.5 completa, desplegada y validada: Edge Function `finalize-image-upload`.
+- Fase 7.6 completa, desplegada y validada: Edge Function `validate-image`.
+- Fase 7.7 implementada, desplegada y validada con fallo controlado: Edge Function `run-inference`.
+- Fase 7.8 implementada, desplegada y validada con fallo controlado: Edge Function `generate-report`.
+- Fase 7.9 completa, desplegada y validada para lectura controlada parcial: Edge Function `get-case-result`.
 
-No se avanzo a Fase 7.4 porque la Fase 7.2 todavia requiere configurar secreto y validar creacion real de caso. La Fase 7.3 quedo implementada, pero su prueba feliz queda bloqueada por la misma dependencia.
+No se avanzo a Fase 8. La siguiente subfase pendiente dentro de Fase 7 es Fase 7.10 `create-signed-read-url`.
+
+Bloqueo real para ruta feliz completa de 7.7 a 7.8:
+
+- `public.ai_models` no tiene ningun modelo activo.
+- `run-inference` requiere un modelo con `is_active = true` segun el documento.
+- No se creo un modelo ficticio porque eso corresponderia a configuracion real/administrativa y no debe inventarse.
+- Hasta configurar modelo IA activo y `AI_SERVICE_URL`/`AI_SERVICE_TOKEN`, `run-inference` responde de forma controlada con `AI_SERVICE_UNAVAILABLE`.
+
+Nota importante de Fase 7.4:
+
+- El documento maestro pide que la URL firmada de subida expire en 5 minutos.
+- Se valido por MCP en la documentacion oficial actual de Supabase que `createSignedUploadUrl` genera URLs firmadas de subida validas por 2 horas.
+- El usuario eligio la opcion 1: usar `createSignedUploadUrl` nativo de Supabase y documentar la desviacion.
+- Por eso `request-image-upload` devuelve `expires_in_seconds = 7200`.
+- Esta decision evita inventar un mecanismo propio de firma fuera del documento y mantiene la subida mediante Storage privado y URL temporal.
 
 ## Decision de nomenclatura
 
@@ -57,7 +76,7 @@ MCP reporto estas migraciones aplicadas:
 - `20260630070623` - `0004_rls_helpers_policies`
 - `20260630071652` - `0005_storage_buckets_policies`
 
-No se aplicaron nuevas migraciones SQL en Fase 6 ni Fase 7.1/7.2, porque estas fases trabajan con Edge Functions y no definen DDL/DML de esquema.
+No se aplicaron nuevas migraciones SQL en Fase 6 ni en Fase 7.1 a Fase 7.9, porque estas subfases trabajan con Edge Functions y no definen DDL/DML de esquema.
 
 ### Edge Functions remotas
 
@@ -65,21 +84,61 @@ MCP reporto estas Edge Functions:
 
 - `health-check`
   - Estado: `ACTIVE`
-  - Version: `1`
+  - Version reportada por MCP despues de la ultima validacion: `2`
   - `verify_jwt`: `false`
   - Motivo: la subfase 7.1 indica `Auth: No`.
 
 - `create-case`
   - Estado: `ACTIVE`
-  - Version: `1`
+  - Version reportada por MCP despues de la ultima validacion: `2`
   - `verify_jwt`: `false`
   - Motivo: la subfase 7.2 indica `Auth: Opcional` y flujo publico controlado.
 
 - `submit-questionnaire`
   - Estado: `ACTIVE`
-  - Version: `1`
+  - Version reportada por MCP despues de la ultima validacion: `2`
   - `verify_jwt`: `false`
   - Motivo: la subfase 7.3 indica `Auth: Opcional con token de caso / Auth interno`.
+
+- `request-image-upload`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `1`
+  - `verify_jwt`: `false`
+  - Motivo: la subfase 7.4 indica `Auth: Opcional con token de caso / Auth interno`.
+  - Seguridad: la funcion valida `case_token` contra `case_access_tokens` usando `CASE_TOKEN_SECRET`, o valida usuario interno activo mediante Auth.
+
+- `finalize-image-upload`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `2`
+  - `verify_jwt`: `false`
+  - Motivo: la subfase 7.5 usa el mismo acceso controlado por `case_code + case_token` o Auth interno.
+  - Seguridad: verifica que el caso este en `image_upload_requested`, que la imagen pertenezca al caso y que el objeto exista en Storage privado antes de actualizar estado.
+
+- `validate-image`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `1`
+  - `verify_jwt`: `false`
+  - Motivo: acceso por `case_code + case_token` o Auth interno.
+
+- `run-inference`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `1`
+  - `verify_jwt`: `false`
+  - Motivo: acceso por `case_code + case_token` o Auth interno.
+  - Estado funcional: desplegada; ruta feliz bloqueada hasta configurar modelo IA activo y servicio IA.
+
+- `generate-report`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `1`
+  - `verify_jwt`: `false`
+  - Motivo: acceso por `case_code + case_token` o Auth interno.
+  - Estado funcional: desplegada; ruta feliz depende de que exista recomendacion preventiva generada por `run-inference`.
+
+- `get-case-result`
+  - Estado: `ACTIVE`
+  - Version reportada por MCP: `1`
+  - `verify_jwt`: `false`
+  - Motivo: acceso por `case_code + case_token` o Auth interno.
 
 ## Archivos locales creados o modificados
 
@@ -118,6 +177,35 @@ Archivo creado:
 Archivo creado:
 
 - `supabase/functions/submit-questionnaire/index.ts`
+
+### Fase 7.4
+
+Archivo creado:
+
+- `supabase/functions/request-image-upload/index.ts`
+
+### Fase 7.5
+
+Archivos creados o modificados:
+
+- `supabase/functions/finalize-image-upload/index.ts`
+- `supabase/functions/_shared/validation.ts`
+
+Nota:
+
+- Se corrigio el helper local `isUuid` para validar UUID estandar con los cinco bloques separados por guiones.
+- El primer deploy de `finalize-image-upload` incluia una version remota antigua del helper con regex incorrecta.
+- Se redeployo `finalize-image-upload` como version `2` con la validacion UUID corregida.
+
+### Fase 7.6 a 7.9
+
+Archivos creados:
+
+- `supabase/functions/validate-image/index.ts`
+- `supabase/functions/run-inference/index.ts`
+- `supabase/functions/generate-report/index.ts`
+- `supabase/functions/get-case-result/index.ts`
+- `supabase/functions/_shared/case-access.ts`
 
 ## Fase 6 - API backend con Edge Functions
 
@@ -670,23 +758,27 @@ Conteos verificados por MCP despues del nuevo intento:
 - `audit_logs` con `CASE_CREATED`: 0
 - `api_request_logs` de `create-case`: 5
 
-Conclusion:
+Conclusion historica de ese intento:
 
-- La funcion sigue fallando antes de crear datos.
-- No hay datos parciales que limpiar.
-- No es seguro avanzar a Fase 7.3 porque `submit-questionnaire` requiere un `case_code + case_token` valido generado por `create-case`.
+- La funcion fallaba antes de crear datos.
+- No habia datos parciales que limpiar.
+- No era seguro avanzar a Fase 7.3 hasta configurar `CASE_TOKEN_SECRET`.
 
-### Bloqueo actual de Fase 7.2
+### Bloqueo resuelto de Fase 7.2
 
-Falta configurar el secreto remoto:
+El secreto remoto requerido era:
 
 ```text
 CASE_TOKEN_SECRET
 ```
 
-Sin este secreto, `create-case` no puede crear token seguro.
+Este bloqueo ya fue resuelto por el usuario. Luego de configurarlo se validaron correctamente:
 
-### Instrucciones para desbloquear Fase 7.2
+- `create-case`,
+- `submit-questionnaire`,
+- `request-image-upload`.
+
+### Instrucciones usadas para desbloquear Fase 7.2
 
 #### Opcion A: Supabase CLI
 
@@ -723,7 +815,7 @@ CASE_TOKEN_SECRET=valor-largo-aleatorio
 6. Guardar.
 7. Volver a probar `create-case`.
 
-### Prueba feliz pendiente despues de configurar secreto
+### Prueba feliz ejecutada despues de configurar secreto
 
 Ejecutar:
 
@@ -1005,17 +1097,18 @@ Conclusion:
 - La funcion esta desplegada.
 - Las validaciones basicas funcionan.
 - No se crearon cuestionarios sin caso real.
-- La prueba feliz queda pendiente hasta que `create-case` pueda crear un caso real con `CASE_TOKEN_SECRET`.
+- En ese momento la prueba feliz quedo pendiente hasta que `create-case` pudiera crear un caso real con `CASE_TOKEN_SECRET`.
+- Esa dependencia ya fue resuelta y luego se ejecuto prueba feliz completa.
 
-### Prueba feliz pendiente de Fase 7.3
+### Prueba feliz ejecutada de Fase 7.3
 
-Requisitos previos:
+Requisitos previos que ya se cumplieron:
 
 1. Configurar `CASE_TOKEN_SECRET`.
 2. Ejecutar prueba feliz de `create-case`.
 3. Obtener `case_code` y `case_token` reales.
 
-Luego ejecutar:
+Comando usado como referencia:
 
 ```powershell
 $body = @{
@@ -1098,54 +1191,895 @@ limit 10;
 
 ### Recomendaciones de Fase 7.3
 
-1. No avanzar a Fase 7.4 en entorno real hasta validar la prueba feliz de `create-case` y `submit-questionnaire`.
+1. No permitir edicion anonima del cuestionario hasta definir reglas claras de upsert.
 2. Mantener `risk_score` como valor orientativo interno.
 3. Revisar formula de pesos en Fase 10.
-4. No permitir edicion anonima del cuestionario hasta definir reglas claras de upsert.
-5. Si se habilita edicion, implementar upsert controlado y auditoria diferenciada.
-6. Mantener validacion estricta de campos para evitar payloads sensibles o inesperados.
+4. Si se habilita edicion, implementar upsert controlado y auditoria diferenciada.
+5. Mantener validacion estricta de campos para evitar payloads sensibles o inesperados.
+
+## Fase 7.4 - `request-image-upload`
+
+### Objetivo
+
+Crear metadata preliminar de imagen y devolver una URL firmada temporal para que el frontend pueda subir una imagen al bucket privado `case-originals` sin insertar directamente en tablas sensibles ni usar `service_role`.
+
+### Archivo creado
+
+- `supabase/functions/request-image-upload/index.ts`
+
+### Despliegue remoto
+
+MCP de Supabase reporto:
+
+```json
+{
+  "slug": "request-image-upload",
+  "version": 1,
+  "status": "ACTIVE",
+  "verify_jwt": false
+}
+```
+
+`verify_jwt` queda en `false` porque la funcion implementa autenticacion propia:
+
+- token temporal de caso (`case_token`) validado contra hash en `case_access_tokens`,
+- o Auth interno con usuario existente y perfil activo en `profiles`.
+
+### Request soportado
+
+```json
+{
+  "case_code": "OD-20260630-A1B2C3D4",
+  "case_token": "token_temporal",
+  "image": {
+    "mime_type": "image/jpeg",
+    "size_bytes": 2480000,
+    "capture_source": "camera"
+  }
+}
+```
+
+### Response implementado
+
+```json
+{
+  "success": true,
+  "data": {
+    "image_id": "uuid",
+    "bucket_name": "case-originals",
+    "object_path": "OD-20260630-A1B2C3D4/uuid.jpg",
+    "upload_url": "signed-upload-url",
+    "expires_in_seconds": 7200,
+    "next_step": "finalize_image_upload"
+  }
+}
+```
+
+### Decision sobre expiracion de URL firmada
+
+El documento maestro indica 5 minutos (`300` segundos). Antes de implementar, se consulto la documentacion actual de Supabase mediante MCP:
+
+- API usada: `storage.from(bucket).createSignedUploadUrl(path)`.
+- Documentacion oficial consultada: JavaScript Reference `file-buckets-createsigneduploadurl`.
+- Resultado: Supabase indica que las signed upload URLs son validas por 2 horas.
+
+Decision aplicada por instruccion del usuario:
+
+- Usar `createSignedUploadUrl` nativo de Supabase.
+- Documentar la desviacion.
+- Devolver `expires_in_seconds = 7200` para no dar informacion falsa al frontend.
+
+Riesgo aceptado:
+
+- La ventana temporal es mayor que la deseada originalmente.
+- Se mitiga usando paths UUID, bucket privado, metadata previa controlada por Edge Function y sin politicas amplias sobre `storage.objects`.
+
+Recomendacion futura:
+
+- Si se exige estrictamente una ventana de 5 minutos, evaluar una capa propia de control en `finalize-image-upload` que rechace metadata antigua, o un flujo alternativo de subida proxy/backend. No cambiarlo sin decision explicita porque aumentaria complejidad y costo.
+
+### Validaciones implementadas
+
+Payload principal:
+
+- Solo permite `case_code`, `case_token`, `image`.
+- Rechaza campos extra.
+- `case_code` debe ser texto no vacio de maximo 80 caracteres.
+- `case_token` debe ser texto si se envia.
+
+Imagen:
+
+- `mime_type` permitido:
+  - `image/jpeg`,
+  - `image/png`,
+  - `image/webp`.
+- `size_bytes` entero entre `1` y `10485760`.
+- `capture_source` permitido:
+  - `camera`,
+  - `gallery`.
+- Extension generada:
+  - `image/jpeg` -> `.jpg`,
+  - `image/png` -> `.png`,
+  - `image/webp` -> `.webp`.
+
+Acceso:
+
+- Verifica que el caso exista por `case_code`.
+- Verifica consentimiento aceptado en `consent_records`.
+- Permite estados:
+  - `questionnaire_completed`,
+  - `image_rejected`.
+- Si hay Authorization, valida usuario por Supabase Auth y perfil activo.
+- Si no hay Authorization, exige `case_token`.
+- El token se hashea con `CASE_TOKEN_SECRET` usando SHA-256 y se compara contra `case_access_tokens.token_hash`.
+- Verifica `purpose = 'case_result_access'`.
+- Rechaza token revocado o expirado.
+
+### Escrituras realizadas por la funcion
+
+En prueba feliz:
+
+1. Inserta una fila en `case_images` con:
+   - `id`,
+   - `case_id`,
+   - `image_kind = 'original'`,
+   - `capture_source`,
+   - `bucket_name = 'case-originals'`,
+   - `object_path`,
+   - `mime_type`,
+   - `size_bytes`,
+   - `uploaded_by` si aplica.
+
+2. Genera URL firmada de subida con:
+
+```ts
+adminClient.storage.from('case-originals').createSignedUploadUrl(objectPath)
+```
+
+3. Actualiza `cases.status` a:
+
+```text
+image_upload_requested
+```
+
+4. Registra auditoria:
+
+```text
+IMAGE_UPLOAD_REQUESTED
+```
+
+5. Registra log tecnico en `api_request_logs` con:
+
+```text
+function_name = request-image-upload
+status_code = 200
+metadata.alcance = solicitud_subida_imagen
+```
+
+### SQL aplicado
+
+No se aplico SQL.
+
+Motivo:
+
+- La subfase 7.4 solo agrega una Edge Function.
+- No define tablas, columnas, indices, RLS, policies, buckets ni enums nuevos.
+- Por eso no se creo migracion SQL en `supabase/migrations`.
+
+### Verificacion HTTP realizada
+
+Se ejecuto una prueba completa como flujo anonimo de frontend:
+
+1. `POST /functions/v1/create-case`
+2. `POST /functions/v1/submit-questionnaire`
+3. `POST /functions/v1/request-image-upload`
+
+Resultado saneado:
+
+```json
+{
+  "create_success": true,
+  "submit_success": true,
+  "upload_success": true,
+  "case_id": "52adea12-77c5-4206-9809-5f55ec2f5b1e",
+  "case_code": "OD-20260630-37C5F94F",
+  "risk_score": 35,
+  "image_id": "72f97637-b12d-49ec-abbf-aba76aade177",
+  "bucket_name": "case-originals",
+  "object_path": "OD-20260630-37C5F94F/72f97637-b12d-49ec-abbf-aba76aade177.jpg",
+  "expires_in_seconds": 7200,
+  "upload_url_present": true,
+  "next_step": "finalize_image_upload"
+}
+```
+
+Nota:
+
+- El `case_token` no se documento ni se expuso en este archivo.
+- Solo se uso durante la prueba HTTP.
+
+### Verificacion remota por MCP
+
+Caso, cuestionario e imagen:
+
+```sql
+select
+  c.id as case_id,
+  c.case_code,
+  c.status,
+  rq.risk_score,
+  ci.id as image_id,
+  ci.bucket_name,
+  ci.object_path,
+  ci.mime_type,
+  ci.size_bytes,
+  ci.capture_source,
+  ci.created_at
+from public.cases c
+left join public.risk_questionnaires rq on rq.case_id = c.id
+left join public.case_images ci on ci.case_id = c.id
+where c.id = '52adea12-77c5-4206-9809-5f55ec2f5b1e';
+```
+
+Resultado validado:
+
+- `cases.status = image_upload_requested`
+- `risk_score = 35.00`
+- `case_images.id = 72f97637-b12d-49ec-abbf-aba76aade177`
+- `bucket_name = case-originals`
+- `object_path = OD-20260630-37C5F94F/72f97637-b12d-49ec-abbf-aba76aade177.jpg`
+- `mime_type = image/jpeg`
+- `size_bytes = 2480000`
+- `capture_source = camera`
+
+Auditoria:
+
+```sql
+select action, entity_type, entity_id, case_id, metadata->>'case_code' as case_code,
+       metadata->>'signed_upload_url_expires_in_seconds' as expires_in_seconds
+from public.audit_logs
+where case_id = '52adea12-77c5-4206-9809-5f55ec2f5b1e'
+order by created_at desc
+limit 5;
+```
+
+Resultado validado:
+
+- `IMAGE_UPLOAD_REQUESTED`
+- `entity_type = case_images`
+- `expires_in_seconds = 7200`
+- Tambien existen `QUESTIONNAIRE_SUBMITTED` y `CASE_CREATED` para el mismo caso.
+
+Logs API:
+
+```sql
+select function_name, status_code, error_code, case_id, metadata
+from public.api_request_logs
+where case_id = '52adea12-77c5-4206-9809-5f55ec2f5b1e'
+order by created_at desc
+limit 5;
+```
+
+Resultado validado:
+
+- `request-image-upload`: `status_code = 200`, `error_code = null`.
+- `submit-questionnaire`: `status_code = 200`, `error_code = null`.
+- `create-case`: `status_code = 200`, `error_code = null`.
+
+Storage:
+
+```sql
+select id, name, public, file_size_limit, allowed_mime_types
+from storage.buckets
+order by id;
+```
+
+Resultado validado:
+
+- `case-gradcam`: privado, maximo 10 MB, MIME `image/png`, `image/jpeg`, `image/webp`.
+- `case-originals`: privado, maximo 10 MB, MIME `image/jpeg`, `image/png`, `image/webp`.
+- `case-reports`: privado, maximo 10 MB, MIME `application/pdf`.
+- `case-thumbnails`: privado, maximo 2 MB, MIME `image/webp`, `image/jpeg`, `image/png`.
+
+Objeto no subido todavia:
+
+```sql
+select count(*)::int as objetos_creados
+from storage.objects
+where bucket_id = 'case-originals'
+  and name = 'OD-20260630-37C5F94F/72f97637-b12d-49ec-abbf-aba76aade177.jpg';
+```
+
+Resultado validado:
+
+- `objetos_creados = 0`
+
+Esto es correcto porque Fase 7.4 solo solicita URL de subida. La carga real y verificacion del objeto corresponde a Fase 7.5 `finalize-image-upload`.
+
+### Riesgos de Fase 7.4
+
+1. La URL firmada de subida vive 2 horas por comportamiento nativo de Supabase, no 5 minutos.
+2. `object_path` se devuelve porque el contrato de la subfase lo exige; no debe usarse como URL publica.
+3. La metadata de `case_images` queda creada antes de que el archivo exista. Fase 7.5 debe validar existencia real del objeto en Storage.
+4. Si el usuario pide varias URLs antes de subir, pueden quedar filas preliminares sin objeto. Debe tratarse en limpieza o en Fase 7.5.
+5. No hay politicas amplias sobre `storage.objects`; esto es intencional y debe mantenerse.
+
+### Pruebas recomendadas para Fase 7.4
+
+1. Payload sin `case_token` y sin Authorization debe devolver `UNAUTHORIZED`.
+2. Token invalido debe devolver `CASE_TOKEN_INVALID`.
+3. Token expirado debe devolver `CASE_TOKEN_EXPIRED`.
+4. MIME no permitido debe devolver `VALIDATION_ERROR`.
+5. Tamaño mayor a 10 MB debe devolver `VALIDATION_ERROR`.
+6. Caso en estado distinto a `questionnaire_completed` o `image_rejected` debe devolver `VALIDATION_ERROR`.
+7. Usuario interno con perfil inactivo debe devolver `FORBIDDEN`.
+8. Confirmar que el frontend sube con la URL firmada y que Fase 7.5 valida el objeto.
+
+### Prueba negativa adicional ejecutada
+
+Se creo un caso de prueba, se completo su cuestionario y luego se llamo `request-image-upload` sin `case_token` ni Authorization.
+
+Resultado validado:
+
+```json
+{
+  "status_code": 401,
+  "error_code": "UNAUTHORIZED",
+  "message": "Falta token temporal valido."
+}
+```
+
+Esto confirma que el frontend anonimo no puede pedir URL firmada de subida sin token temporal de caso.
+
+## Fase 7.5 - `finalize-image-upload`
+
+### Objetivo
+
+Confirmar que el archivo fue subido al bucket privado `case-originals`, completar metadata tecnica de la imagen y cambiar el estado operativo del caso a `image_uploaded`.
+
+### Archivo creado
+
+- `supabase/functions/finalize-image-upload/index.ts`
+
+### Archivo compartido modificado
+
+- `supabase/functions/_shared/validation.ts`
+
+Cambio aplicado:
+
+```ts
+export function isUuid(value: unknown): value is string {
+  return typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+```
+
+Motivo:
+
+- La expresion regular remota usada en el primer deploy de `finalize-image-upload` no aceptaba UUID estandar porque faltaba un guion antes del ultimo bloque.
+- Esto causaba `VALIDATION_ERROR` con `El identificador de imagen no es valido.` para IDs validos.
+- Se corrigio localmente y se redeployo la funcion como version `2`.
+
+### Despliegue remoto
+
+MCP de Supabase reporto:
+
+```json
+{
+  "slug": "finalize-image-upload",
+  "version": 2,
+  "status": "ACTIVE",
+  "verify_jwt": false
+}
+```
+
+`verify_jwt` queda en `false` porque la funcion implementa autenticacion propia:
+
+- token temporal de caso (`case_token`) validado contra hash en `case_access_tokens`,
+- o Auth interno con usuario existente y perfil activo en `profiles`.
+
+### Request soportado
+
+```json
+{
+  "case_code": "OD-20260630-A1B2C3D4",
+  "case_token": "token_temporal",
+  "image_id": "uuid",
+  "metadata": {
+    "width_px": 1280,
+    "height_px": 960,
+    "sha256_hash": "hash_sha256_64_caracteres"
+  }
+}
+```
+
+### Response implementado
+
+```json
+{
+  "success": true,
+  "data": {
+    "image_id": "uuid",
+    "status": "image_uploaded",
+    "next_step": "validate_image"
+  }
+}
+```
+
+### Validaciones implementadas
+
+Payload principal:
+
+- Solo permite `case_code`, `case_token`, `image_id`, `metadata`.
+- Rechaza campos extra.
+- `case_code` debe ser texto no vacio de maximo 80 caracteres.
+- `case_token` debe ser texto si se envia.
+- `image_id` debe ser UUID valido.
+- `metadata` debe ser objeto.
+
+Metadata:
+
+- Solo permite `width_px`, `height_px`, `sha256_hash`.
+- `width_px` y `height_px` son opcionales, pero si se envian deben ser enteros positivos entre `1` y `50000`.
+- `sha256_hash` es opcional, pero si se envia debe ser hexadecimal SHA-256 de 64 caracteres.
+- El hash se normaliza a minusculas.
+
+Acceso:
+
+- Verifica que el caso exista por `case_code`.
+- Exige `cases.status = image_upload_requested`.
+- Si hay Authorization, valida usuario por Supabase Auth y perfil activo.
+- Si no hay Authorization, exige `case_token`.
+- El token se hashea con `CASE_TOKEN_SECRET` usando SHA-256 y se compara contra `case_access_tokens.token_hash`.
+- Verifica `purpose = 'case_result_access'`.
+- Rechaza token revocado o expirado.
+
+Imagen y Storage:
+
+- Verifica que `case_images.id = image_id`.
+- Verifica que la imagen pertenezca al caso.
+- Verifica que `image_kind = original`.
+- Verifica que el objeto exista en Storage privado usando `bucket_name` y `object_path`.
+- No usa URL publica ni expone `service_role` fuera de la Edge Function.
+
+### Escrituras realizadas por la funcion
+
+En prueba feliz:
+
+1. Actualiza `case_images`:
+   - `width_px`,
+   - `height_px`,
+   - `sha256_hash`.
+
+2. Actualiza `cases.status` a:
+
+```text
+image_uploaded
+```
+
+3. Registra auditoria:
+
+```text
+IMAGE_UPLOAD_FINALIZED
+```
+
+4. Registra log tecnico en `api_request_logs` con:
+
+```text
+function_name = finalize-image-upload
+status_code = 200
+metadata.alcance = finalizacion_subida_imagen
+```
+
+### SQL aplicado
+
+No se aplico SQL.
+
+Motivo:
+
+- La subfase 7.5 solo agrega una Edge Function y corrige un helper TypeScript compartido.
+- No define tablas, columnas, indices, RLS, policies, buckets ni enums nuevos.
+- Por eso no se creo migracion SQL en `supabase/migrations`.
+
+### Verificacion HTTP realizada
+
+Se ejecuto una prueba completa como flujo anonimo de frontend:
+
+1. `POST /functions/v1/create-case`
+2. `POST /functions/v1/submit-questionnaire`
+3. `POST /functions/v1/request-image-upload`
+4. Subida real de PNG minimo mediante `upload_url` firmada.
+5. `POST /functions/v1/finalize-image-upload`
+
+Resultado saneado:
+
+```json
+{
+  "create_success": true,
+  "submit_success": true,
+  "upload_request_success": true,
+  "signed_upload_http_status": 200,
+  "finalize_success": true,
+  "finalize_status": "image_uploaded",
+  "next_step": "validate_image",
+  "case_id": "2b72e8d0-46f7-4a34-b58b-e6e4253731b6",
+  "case_code": "OD-20260630-8E5615F0",
+  "image_id": "3a77984e-d397-4362-896e-cf20a5053eb6",
+  "object_path": "OD-20260630-8E5615F0/3a77984e-d397-4362-896e-cf20a5053eb6.png",
+  "sha256_hash": "4b5c5c92cec3b23e6a294fc0eea43234ef5126c5a64f4c6c531ac8430ab0b844"
+}
+```
+
+Nota:
+
+- El `case_token` no se documento ni se expuso en este archivo.
+- Solo se uso durante la prueba HTTP.
+- La imagen de prueba fue un PNG minimo de 68 bytes, suficiente para verificar Storage y flujo de estado.
+
+### Verificacion remota por MCP
+
+Caso e imagen:
+
+```sql
+select c.id as case_id, c.case_code, c.status,
+       ci.id as image_id, ci.bucket_name, ci.object_path,
+       ci.width_px, ci.height_px, ci.sha256_hash
+from public.cases c
+join public.case_images ci on ci.case_id = c.id
+where c.id = '2b72e8d0-46f7-4a34-b58b-e6e4253731b6';
+```
+
+Resultado validado:
+
+- `cases.status = image_uploaded`
+- `width_px = 1`
+- `height_px = 1`
+- `sha256_hash = 4b5c5c92cec3b23e6a294fc0eea43234ef5126c5a64f4c6c531ac8430ab0b844`
+
+Objeto en Storage:
+
+```sql
+select bucket_id, name, metadata->>'mimetype' as mimetype,
+       (metadata->>'size')::int as size_bytes
+from storage.objects
+where bucket_id = 'case-originals'
+  and name = 'OD-20260630-8E5615F0/3a77984e-d397-4362-896e-cf20a5053eb6.png';
+```
+
+Resultado validado:
+
+- `bucket_id = case-originals`
+- `mimetype = image/png`
+- `size_bytes = 68`
+
+Auditoria:
+
+```sql
+select action, entity_type, entity_id, metadata->>'case_code' as case_code,
+       metadata->>'estado_nuevo' as estado_nuevo,
+       metadata->>'sha256_hash_present' as sha256_hash_present
+from public.audit_logs
+where case_id = '2b72e8d0-46f7-4a34-b58b-e6e4253731b6'
+order by created_at desc
+limit 5;
+```
+
+Resultado validado:
+
+- `IMAGE_UPLOAD_FINALIZED`
+- `entity_type = case_images`
+- `estado_nuevo = image_uploaded`
+- `sha256_hash_present = true`
+
+Logs API:
+
+```sql
+select function_name, status_code, error_code, case_id, metadata
+from public.api_request_logs
+where case_id = '2b72e8d0-46f7-4a34-b58b-e6e4253731b6'
+order by created_at desc
+limit 6;
+```
+
+Resultado validado:
+
+- `finalize-image-upload`: `status_code = 200`, `error_code = null`.
+- `request-image-upload`: `status_code = 200`, `error_code = null`.
+- `submit-questionnaire`: `status_code = 200`, `error_code = null`.
+- `create-case`: `status_code = 200`, `error_code = null`.
+
+### Riesgos de Fase 7.5
+
+1. `width_px`, `height_px` y `sha256_hash` vienen desde el cliente; la funcion solo valida formato. Si se requiere verificacion fuerte, Fase 7.6 o una funcion backend debe recalcularlos.
+2. La existencia del objeto si se valida directamente contra Storage privado.
+3. La funcion permite metadata parcial porque el documento dice completar metadata si esta disponible.
+4. No se marca `case_access_tokens.used_at`; no estaba indicado en la subfase y cambiarlo podria afectar el flujo anonimo posterior.
+5. El objeto subido queda en Storage durante pruebas; para limpieza futura se debe usar una subfase de mantenimiento o proceso controlado.
+
+### Pruebas recomendadas para Fase 7.5
+
+1. Llamar sin subir archivo debe devolver `IMAGE_NOT_FOUND`.
+2. Llamar sin `case_token` ni Authorization debe devolver `UNAUTHORIZED`.
+3. Llamar con `image_id` de otro caso debe devolver `IMAGE_NOT_FOUND`.
+4. Llamar con `sha256_hash` no hexadecimal o de longitud incorrecta debe devolver `VALIDATION_ERROR`.
+5. Llamar con estado distinto a `image_upload_requested` debe devolver `VALIDATION_ERROR`.
+6. Confirmar que Fase 7.6 valide resolucion minima y calidad antes de cualquier inferencia IA.
+
+## Fase 7.6 - `validate-image`
+
+### Objetivo
+
+Validar calidad tecnica minima de imagen antes de IA.
+
+### Archivo creado
+
+- `supabase/functions/validate-image/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Acceso por `case_code + case_token` o Auth interno.
+- Requiere `cases.status = image_uploaded`.
+- Verifica que `image_id` pertenezca al caso y que `image_kind = original`.
+- Valida formato `image/jpeg`, `image/png`, `image/webp`.
+- Valida resolucion minima recomendada `640x480`.
+- Crea registro en `image_quality_checks`.
+- Actualiza caso a:
+  - `quality_accepted` si pasa.
+  - `image_rejected` si falla.
+- Registra auditoria `IMAGE_QUALITY_CHECKED`.
+- Registra `api_request_logs`.
+
+### Limitacion tecnica documentada
+
+La funcion no recalcula nitidez, brillo ni contraste desde pixeles reales. Usa una validacion tecnica MVP basada en metadata persistida:
+
+- resolucion,
+- MIME,
+- tamano del archivo.
+
+Los scores se generan de forma deterministica para mantener el contrato de respuesta, pero antes de produccion se recomienda reemplazar esta validacion por procesamiento real de imagen o servicio especializado.
+
+### Validacion realizada
+
+Flujo probado:
+
+1. `create-case`
+2. `submit-questionnaire`
+3. `request-image-upload`
+4. subida real por URL firmada
+5. `finalize-image-upload` con metadata `640x480`
+6. `validate-image`
+
+Resultado saneado:
+
+```json
+{
+  "validate_success": true,
+  "quality_status": "accepted",
+  "validate_next_step": "run_inference"
+}
+```
+
+MCP valido:
+
+- `cases.status = quality_accepted`
+- `image_quality_checks.status = accepted`
+- `resolution_ok = true`
+- `focus_ok = true`
+- `illumination_ok = true`
+- auditoria `IMAGE_QUALITY_CHECKED`
+- log `validate-image` con `status_code = 200`
+
+## Fase 7.7 - `run-inference`
+
+### Objetivo
+
+Orquestar inferencia IA, persistir resultado, crear recomendacion preventiva y actualizar el caso.
+
+### Archivo creado
+
+- `supabase/functions/run-inference/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Acceso por `case_code + case_token` o Auth interno.
+- Requiere `cases.status = quality_accepted`.
+- Verifica que la imagen original pertenezca al caso.
+- Verifica que la ultima calidad de imagen sea `accepted`.
+- Busca modelo activo en `ai_models` con `is_active = true`.
+- Crea URL firmada temporal para la imagen original.
+- Registra auditoria `AI_INFERENCE_STARTED` antes de llamar al servicio.
+- Llama a `AI_SERVICE_URL + /v1/inference/oral-lesion` usando `AI_SERVICE_TOKEN`.
+- Valida respuesta IA esperada:
+  - `suspicion_level`,
+  - `probability`,
+  - `class_probabilities`,
+  - Grad-CAM opcional.
+- Si hay Grad-CAM, lo guarda en bucket privado `case-gradcam` y crea `case_images` tipo `gradcam`.
+- Crea `ai_inferences`.
+- Crea `recommendations`.
+- Actualiza:
+  - `cases.final_suspicion_level`,
+  - `cases.final_urgency_level`,
+  - `cases.final_recommendation`,
+  - `cases.status`.
+- Registra auditoria `AI_INFERENCE_COMPLETED`.
+
+### Estado validado
+
+MCP confirmo que `public.ai_models` no tiene modelos activos.
+
+Validacion HTTP realizada contra caso con `quality_accepted`:
+
+```json
+{
+  "run_status_code": 503,
+  "run_error_code": "AI_SERVICE_UNAVAILABLE"
+}
+```
+
+Esto es correcto mientras no exista modelo IA activo. No se invento ni inserto un modelo ficticio.
+
+### Pendiente para ruta feliz de Fase 7.7
+
+1. Crear o registrar un modelo en `ai_models`.
+2. Marcarlo con `is_active = true`.
+3. Configurar `AI_SERVICE_URL`.
+4. Configurar `AI_SERVICE_TOKEN`.
+5. Asegurar que el servicio IA responda con el contrato esperado.
+
+## Fase 7.8 - `generate-report`
+
+### Objetivo
+
+Generar PDF privado de orientacion/derivacion preventiva y devolver URL firmada temporal.
+
+### Archivo creado
+
+- `supabase/functions/generate-report/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Acceso por `case_code + case_token` o Auth interno.
+- Requiere estado `recommendation_ready`, `under_review` o `reported`.
+- Requiere una recomendacion existente en `recommendations`.
+- Genera PDF minimo con:
+  - nombre del sistema,
+  - codigo anonimo,
+  - fecha,
+  - datos demograficos generales,
+  - zona bucal,
+  - tiempo de evolucion,
+  - calidad/inferencia/recomendacion cuando existe,
+  - advertencia medica obligatoria.
+- Guarda PDF en bucket privado `case-reports`.
+- Crea fila en `pdf_reports`.
+- Actualiza `cases.status = reported`.
+- Devuelve `download_url` firmada por 900 segundos.
+- Registra auditoria `REPORT_GENERATED`.
+
+### Estado validado
+
+Como `run-inference` no pudo crear recomendacion por falta de modelo IA activo, `generate-report` fue validada con fallo controlado:
+
+```json
+{
+  "report_status_code": 400,
+  "report_error_code": "VALIDATION_ERROR"
+}
+```
+
+Motivo esperado:
+
+- El caso no tiene recomendacion preventiva lista para reporte.
+
+## Fase 7.9 - `get-case-result`
+
+### Objetivo
+
+Permitir que el usuario vea su resultado de forma controlada.
+
+### Archivo creado
+
+- `supabase/functions/get-case-result/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Acceso por `case_code + case_token` o Auth interno.
+- Devuelve:
+  - `case_code`,
+  - `status`,
+  - `lesion_site`,
+  - `lesion_duration_days`,
+  - resultado preventivo si existe,
+  - URLs firmadas de assets disponibles,
+  - advertencia medica.
+- No devuelve `bucket_name`.
+- No devuelve `object_path`.
+- URLs firmadas expiran en 900 segundos.
+
+### Validacion realizada
+
+Con el caso de prueba en `quality_accepted` y sin recomendacion todavia:
+
+```json
+{
+  "result_status_code": 200,
+  "result_success": true,
+  "result_case_status": "quality_accepted",
+  "original_url_present": true,
+  "report_url_present": false
+}
+```
+
+Esto confirma:
+
+- acceso controlado funcionando,
+- URL firmada de imagen original funcionando,
+- no se expone ruta interna,
+- resultado preventivo queda como no disponible hasta completar inferencia IA.
+
+## SQL aplicado en Fase 7.6 a 7.9
+
+No se aplico SQL.
+
+Motivo:
+
+- Las subfases agregan Edge Functions.
+- No se crearon tablas, columnas, enums, indices, policies ni buckets nuevos.
+- No se creo migracion nueva en `supabase/migrations`.
+
+## Riesgos y recomendaciones de Fase 7.6 a 7.9
+
+1. `validate-image` usa validacion tecnica MVP basada en metadata; antes de produccion conviene calcular brillo, contraste y nitidez desde pixeles reales.
+2. `run-inference` queda bloqueada para ruta feliz hasta configurar modelo activo y servicio IA.
+3. `generate-report` depende de que exista recomendacion preventiva.
+4. `get-case-result` puede devolver resultado parcial si el caso aun no tiene recomendacion; esto es util para estado de progreso, pero el frontend debe mostrarlo claramente.
+5. Mantener buckets privados y no crear politicas amplias sobre `storage.objects`.
+6. No usar lenguaje diagnostico definitivo en mensajes de IA, reporte o resultado.
 
 ## Pendiente inmediato
 
-Antes de continuar con Fase 7.4:
+Continuar solo con Fase 7.10 `create-signed-read-url` cuando el usuario lo confirme.
 
-1. Configurar `CASE_TOKEN_SECRET`.
-2. Repetir prueba feliz de `create-case`.
-3. Confirmar creacion de:
-   - `case_subjects`,
-   - `cases`,
-   - `consent_records`,
-   - `case_access_tokens`,
-   - `audit_logs`.
-4. Confirmar que `case_token` no se almacena plano.
-5. Confirmar que `token_hash` existe y que `case_token` solo aparece en respuesta.
-6. Confirmar que `api_request_logs` registra `status_code = 200`.
-7. Repetir prueba feliz de `submit-questionnaire` con `case_code + case_token` reales.
-8. Confirmar que se crea `risk_questionnaires`.
-9. Confirmar que `cases.status` cambia a `questionnaire_completed`.
-10. Confirmar auditoria `QUESTIONNAIRE_SUBMITTED`.
+Antes de implementar Fase 7.10:
 
-## Siguiente fase despues del desbloqueo
+1. Leer la subfase 7.10 en `docs/backend_supabase_por_fases.md`.
+2. No avanzar a Fase 8.
+3. Mantener buckets privados.
+4. Devolver solo URLs firmadas temporales.
+5. No devolver `bucket_name` ni `object_path` si no es estrictamente necesario.
+6. Validar `asset_type` y `asset_id` contra el caso.
+7. Registrar auditoria correspondiente.
+8. Registrar `api_request_logs`.
+9. No usar lenguaje diagnostico definitivo.
+10. Documentar cualquier desviacion antes de aplicar.
+
+## Siguiente fase pendiente
 
 La siguiente subfase no implementada del documento es:
 
-- Fase 7.4: `request-image-upload`
+- Fase 7.10: `create-signed-read-url`
 
-No se debe avanzar a esta subfase hasta cerrar la validacion feliz de Fase 7.2 y Fase 7.3, salvo decision explicita del usuario.
+No se debe avanzar a Fase 8 hasta terminar Fase 7 y recibir confirmacion explicita del usuario.
 
 ## Estado de avance de Fase 7
 
 Subfases de Fase 7 segun el documento:
 
 1. `health-check` - completa y verificada.
-2. `create-case` - implementada y desplegada; prueba feliz bloqueada por `CASE_TOKEN_SECRET`.
-3. `submit-questionnaire` - implementada y desplegada; prueba feliz bloqueada porque depende de caso/token reales.
-4. `request-image-upload` - pendiente.
-5. `finalize-image-upload` - pendiente.
-6. `validate-image` - pendiente.
-7. `run-inference` - pendiente.
-8. `generate-report` - pendiente.
-9. `get-case-result` - pendiente.
+2. `create-case` - completa, desplegada y verificada.
+3. `submit-questionnaire` - completa, desplegada y verificada.
+4. `request-image-upload` - completa, desplegada y verificada.
+5. `finalize-image-upload` - completa, desplegada y verificada.
+6. `validate-image` - completa, desplegada y verificada.
+7. `run-inference` - implementada y desplegada; ruta feliz bloqueada por falta de modelo IA activo/servicio IA.
+8. `generate-report` - implementada y desplegada; ruta feliz depende de recomendacion generada por IA.
+9. `get-case-result` - completa, desplegada y verificada para resultado parcial controlado.
 10. `create-signed-read-url` - pendiente.
 11. `review-case` - pendiente.
 12. `dashboard-metrics` - pendiente.
@@ -1154,10 +2088,11 @@ Subfases de Fase 7 segun el documento:
 
 Resumen:
 
-- Completada y verificada: 1 de 14.
-- Implementadas y desplegadas con prueba feliz pendiente: 2 de 14.
-- Pendientes de implementar: 11 de 14.
-- Bloqueo transversal actual: falta `CASE_TOKEN_SECRET`.
+- Completadas, desplegadas y verificadas total o parcialmente segun dependencias externas: 9 de 14.
+- Pendientes de implementar: 5 de 14.
+- Bloqueo transversal anterior resuelto: `CASE_TOKEN_SECRET` ya fue configurado.
+- Bloqueo actual para ruta feliz completa: falta modelo IA activo y configuracion de servicio IA.
+- Siguiente subfase: Fase 7.10 `create-signed-read-url`.
 
 ## Variables de entorno obligatorias
 
@@ -1179,7 +2114,7 @@ Estado observado:
 
 - `SUPABASE_URL`: disponible para Edge Functions, porque `health-check` y logs funcionan.
 - `SUPABASE_SERVICE_ROLE_KEY`: disponible para Edge Functions, porque `api_request_logs` se inserta.
-- `CASE_TOKEN_SECRET`: faltante.
+- `CASE_TOKEN_SECRET`: configurado y validado mediante pruebas felices de `create-case`, `submit-questionnaire` y `request-image-upload`.
 - `ENVIRONMENT`: no configurado explicitamente o fallback usado como `production`.
 
 Recomendacion:
@@ -1634,29 +2569,29 @@ Uso principal:
    - `case_access_tokens`,
    - `audit_logs`.
 
-2. `submit-questionnaire` creara:
+2. `submit-questionnaire` crea:
    - `risk_questionnaires`,
-   - actualizara `cases.status`.
+   - actualiza `cases.status`.
 
-3. `request-image-upload` creara:
+3. `request-image-upload` crea:
    - `case_images`,
    - URL firmada de subida en Storage,
-   - actualizara `cases.status`.
+   - actualiza `cases.status`.
 
-4. `finalize-image-upload` completara:
+4. `finalize-image-upload` completa:
    - metadata tecnica de `case_images`,
    - estado del caso.
 
-5. `validate-image` creara:
+5. `validate-image` crea:
    - `image_quality_checks`.
 
-6. `run-inference` creara:
+6. `run-inference` crea cuando existe modelo IA activo y servicio IA configurado:
    - `ai_inferences`.
 
-7. Motor de recomendacion creara:
+7. Motor de recomendacion crea dentro de `run-inference`:
    - `recommendations`.
 
-8. `generate-report` creara:
+8. `generate-report` crea cuando existe recomendacion preventiva:
    - PDF privado en Storage,
    - metadata en `pdf_reports`.
 
