@@ -22,8 +22,13 @@ El avance actual cubre:
 - Fase 7.7 implementada, desplegada y validada con fallo controlado: Edge Function `run-inference`.
 - Fase 7.8 implementada, desplegada y validada con fallo controlado: Edge Function `generate-report`.
 - Fase 7.9 completa, desplegada y validada para lectura controlada parcial: Edge Function `get-case-result`.
+- Fase 7.10 completa, desplegada y validada: Edge Function `create-signed-read-url`.
+- Fase 7.11 implementada, desplegada y validada en seguridad basica: Edge Function `review-case`.
+- Fase 7.12 implementada, desplegada y validada en seguridad basica: Edge Function `dashboard-metrics`.
+- Fase 7.13 implementada, desplegada y validada en seguridad basica: Edge Function `admin-upsert-ai-model`.
+- Fase 7.14 implementada, desplegada y validada en seguridad basica: Edge Function `cleanup-expired-case-tokens`.
 
-No se avanzo a Fase 8. La siguiente subfase pendiente dentro de Fase 7 es Fase 7.10 `create-signed-read-url`.
+No se avanzo a Fase 8. Fase 7 ya quedo implementada completa a nivel de Edge Functions, con pruebas felices pendientes solo donde falta usuario interno con perfil activo.
 
 Bloqueo real para ruta feliz completa de 7.7 a 7.8:
 
@@ -380,12 +385,12 @@ Ninguno.
 
 ### Riesgos o pendientes de Fase 6
 
-- Deno no esta instalado localmente, por lo que no se pudo ejecutar `deno check`.
+- Deno ya fue instalado localmente y se pudo ejecutar `deno check` sobre las 14 Edge Functions de Fase 7.
 - Supabase CLI no esta disponible localmente segun el estado previo, por lo que no se uso `supabase functions serve`.
 
 ### Recomendaciones de Fase 6
 
-1. Instalar Deno para validacion local:
+1. Usar Deno para validacion local:
 
 ```powershell
 deno check supabase/functions/_shared/*.ts
@@ -2023,9 +2028,397 @@ Esto confirma:
 - no se expone ruta interna,
 - resultado preventivo queda como no disponible hasta completar inferencia IA.
 
-## SQL aplicado en Fase 7.6 a 7.9
+Validacion adicional realizada el 2026-06-30:
 
-No se aplico SQL.
+```json
+{
+  "create_success": true,
+  "result_success": true,
+  "result_status": "consent_accepted",
+  "disclaimer_present": true
+}
+```
+
+Esto confirma que `get-case-result` sigue respondiendo correctamente con token temporal recien emitido.
+
+## Fase 7.10 - `create-signed-read-url`
+
+### Objetivo
+
+Crear URL temporal de lectura para imagen o PDF.
+
+### Archivo creado
+
+- `supabase/functions/create-signed-read-url/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Acceso por `case_code + case_token` o Auth interno.
+- Valida que el caso exista y que el token temporal sea valido cuando no hay usuario interno.
+- Valida `asset_id` como UUID.
+- Valida `asset_type` contra recursos resolubles del esquema actual:
+  - `original_image`
+  - `gradcam_image`
+  - `thumbnail_image`
+  - `report_pdf`
+- Verifica que el recurso pertenezca al caso antes de firmar.
+- No devuelve `bucket_name`.
+- No devuelve `object_path`.
+- Crea URL firmada con expiracion de 600 segundos.
+- Registra auditoria `SIGNED_URL_CREATED`.
+- Registra solicitud tecnica en `api_request_logs`.
+
+### Deploy remoto
+
+MCP reporto:
+
+- Nombre: `create-signed-read-url`
+- Estado: `ACTIVE`
+- Version: `1`
+- `verify_jwt`: `false`
+
+Motivo de `verify_jwt=false`:
+
+- La funcion permite acceso anonimo controlado mediante `case_code + case_token`.
+- Si llega `Authorization`, valida internamente el usuario.
+
+### Validacion realizada
+
+Flujo probado:
+
+1. `create-case`
+2. `submit-questionnaire`
+3. `request-image-upload`
+4. subida real por URL firmada nativa de Supabase
+5. `create-signed-read-url`
+
+Resultado saneado:
+
+```json
+{
+  "signed_success": true,
+  "expires": 600,
+  "signed_url_present": true
+}
+```
+
+MCP valido:
+
+- Edge Function activa.
+- `api_request_logs` con `status_code = 200`.
+- auditoria `SIGNED_URL_CREATED`.
+
+Nota:
+
+- Una primera prueba contra metadata de imagen sin objeto subido devolvio `INTERNAL_ERROR`, porque Storage no pudo firmar un objeto inexistente. La prueba valida se repitio con subida real.
+
+## Fase 7.11 - `review-case`
+
+### Objetivo
+
+Permitir revision por especialista o administrador.
+
+### Archivo creado
+
+- `supabase/functions/review-case/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Requiere `Authorization: Bearer`.
+- Valida usuario Supabase Auth.
+- Exige perfil interno activo en `profiles`.
+- Permite solo roles:
+  - `specialist`
+  - `admin`
+- Valida `case_id`.
+- Valida `decision` contra enum real:
+  - `confirm_ai`
+  - `correct_ai`
+  - `needs_clinical_evaluation`
+  - `insufficient_information`
+- Si `decision = correct_ai`, exige `corrected_suspicion_level`.
+- Valida `clinical_notes` obligatorio y maximo 5000 caracteres.
+- Valida `recommended_action` maximo 2000 caracteres.
+- Permite revision de casos en estados:
+  - `analyzed`
+  - `recommendation_ready`
+  - `reported`
+  - `under_review`
+- Crea `specialist_reviews`.
+- Actualiza `cases.status = reviewed`.
+- Si corrige IA, actualiza `cases.final_suspicion_level`.
+- Registra auditoria `CASE_REVIEWED`.
+- Registra solicitud tecnica en `api_request_logs`.
+
+### Deploy remoto
+
+MCP reporto:
+
+- Nombre: `review-case`
+- Estado: `ACTIVE`
+- Version: `1`
+- `verify_jwt`: `false`
+
+Motivo de `verify_jwt=false`:
+
+- La funcion implementa validacion interna de Bearer token y perfil activo.
+- Esto mantiene respuesta estandar y registro en `api_request_logs`.
+
+### Validacion realizada
+
+Sin sesion:
+
+```json
+{
+  "review_no_auth_status": 401
+}
+```
+
+MCP valido:
+
+- Edge Function activa.
+- `api_request_logs` con `status_code = 401` y `error_code = UNAUTHORIZED`.
+
+Pendiente para ruta feliz:
+
+- Probar con usuario real autenticado con perfil activo `specialist` o `admin`.
+
+## Fase 7.12 - `dashboard-metrics`
+
+### Objetivo
+
+Devolver metricas agregadas para panel sin datos crudos sensibles.
+
+### Archivo creado
+
+- `supabase/functions/dashboard-metrics/index.ts`
+
+### Implementado
+
+- Metodo `GET`.
+- Requiere `Authorization: Bearer`.
+- Valida usuario Supabase Auth.
+- Exige perfil interno activo en `profiles`.
+- Permite roles:
+  - `admin`
+  - `specialist`
+  - `researcher`
+- Devuelve solo agregados:
+  - `cases_last_30_days`
+  - `total_cases`
+  - `pending_review`
+  - `by_suspicion_level`
+  - `image_quality`
+  - `average_ai_latency_ms`
+- No devuelve IDs, imagenes, rutas internas ni datos individuales.
+- Registra solicitud tecnica en `api_request_logs`.
+
+### Deploy remoto
+
+MCP reporto:
+
+- Nombre: `dashboard-metrics`
+- Estado: `ACTIVE`
+- Version: `1`
+- `verify_jwt`: `false`
+
+Motivo de `verify_jwt=false`:
+
+- La funcion implementa validacion interna de Bearer token y perfil activo.
+- Esto mantiene respuesta estandar y registro en `api_request_logs`.
+
+### Validacion realizada
+
+Sin sesion y metodo incorrecto:
+
+```json
+{
+  "dashboard_no_auth_status": 401,
+  "dashboard_post_status": 405
+}
+```
+
+MCP valido:
+
+- Edge Function activa.
+- `api_request_logs` con:
+  - `status_code = 401`, `error_code = UNAUTHORIZED`
+  - `status_code = 405`, `error_code = METHOD_NOT_ALLOWED`
+
+Pendiente para ruta feliz:
+
+- Probar con usuario real autenticado con perfil activo `admin`, `specialist` o `researcher`.
+
+## Fase 7.13 - `admin-upsert-ai-model`
+
+### Objetivo
+
+Registrar o actualizar modelo IA.
+
+### Archivo creado
+
+- `supabase/functions/admin-upsert-ai-model/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Requiere `Authorization: Bearer`.
+- Valida usuario Supabase Auth.
+- Exige perfil interno activo en `profiles`.
+- Permite solo rol `admin`.
+- Valida payload contra la estructura real de `ai_models`:
+  - `name`,
+  - `version`,
+  - `architecture`,
+  - `storage_path`,
+  - `input_shape`,
+  - `class_labels`,
+  - `threshold_config`,
+  - `metrics`,
+  - `is_active`.
+- Si `is_active = true`, desactiva modelos activos previos con el mismo `name`.
+- Hace upsert por constraint unica `name, version`.
+- Registra auditoria `AI_MODEL_UPSERTED`.
+- Registra solicitud tecnica en `api_request_logs`.
+
+### Deploy remoto
+
+MCP reporto:
+
+- Nombre: `admin-upsert-ai-model`
+- Estado: `ACTIVE`
+- Version: `1`
+- `verify_jwt`: `false`
+
+Motivo de `verify_jwt=false`:
+
+- La funcion implementa validacion interna de Bearer token, perfil activo y rol `admin`.
+- Esto mantiene respuesta estandar y registro en `api_request_logs`.
+
+### Validacion realizada
+
+Sin sesion:
+
+```json
+{
+  "admin_upsert_no_auth_status": 401
+}
+```
+
+MCP valido:
+
+- Edge Function activa.
+- `api_request_logs` con `status_code = 401` y `error_code = UNAUTHORIZED`.
+
+Pendiente para ruta feliz:
+
+- Crear o confirmar perfil interno `admin` para el usuario Auth que ejecutara la prueba.
+- Luego registrar el modelo real o de staging definido por el equipo. No se creo modelo ficticio.
+
+## Fase 7.14 - `cleanup-expired-case-tokens`
+
+### Objetivo
+
+Limpieza periodica de tokens expirados.
+
+### Archivo creado
+
+- `supabase/functions/cleanup-expired-case-tokens/index.ts`
+
+### Implementado
+
+- Metodo `POST`.
+- Requiere `Authorization: Bearer`.
+- Valida usuario Supabase Auth.
+- Exige perfil interno activo en `profiles`.
+- Permite solo rol `admin`.
+- Revoca tokens expirados no usados con `revoked_at = now()`.
+- No borra auditoria.
+- No elimina tokens.
+- Devuelve `revoked_count`.
+- Registra auditoria `TOKEN_CLEANUP_COMPLETED`.
+- Registra solicitud tecnica en `api_request_logs`.
+
+### Decision sobre modo Scheduled/Service
+
+El documento permite `POST` o Scheduled y rol Admin/Service, pero no define un secreto interno ni contrato de invocacion service.
+
+Decision aplicada:
+
+- Se implemento ruta admin autenticada.
+- No se invento variable de entorno nueva para servicio interno.
+- La ejecucion scheduled/service queda pendiente hasta definir el mecanismo de autenticacion interno.
+
+### Deploy remoto
+
+MCP reporto:
+
+- Nombre: `cleanup-expired-case-tokens`
+- Estado: `ACTIVE`
+- Version: `1`
+- `verify_jwt`: `false`
+
+Motivo de `verify_jwt=false`:
+
+- La funcion implementa validacion interna de Bearer token, perfil activo y rol `admin`.
+- Esto mantiene respuesta estandar y registro en `api_request_logs`.
+
+### Validacion realizada
+
+Sin sesion y metodo incorrecto:
+
+```json
+{
+  "cleanup_no_auth_status": 401,
+  "cleanup_get_status": 405
+}
+```
+
+MCP valido:
+
+- Edge Function activa.
+- `api_request_logs` con:
+  - `status_code = 401`, `error_code = UNAUTHORIZED`
+  - `status_code = 405`, `error_code = METHOD_NOT_ALLOWED`
+
+Pendiente para ruta feliz:
+
+- Probar con usuario real autenticado con perfil activo `admin`.
+
+## Usuario interno creado para pruebas
+
+El usuario Auth con UID `0a379675-ebe1-4601-bb7f-465857b3e8b9` existe en Supabase Auth.
+
+Estado observado por MCP:
+
+- Email: `guillermo.vaca07@gmail.com`
+- Perfil creado en `public.profiles`.
+- `role = admin`.
+- `is_active = true`.
+
+Decision aplicada:
+
+- El usuario pidio explicitamente convertir este UID en admin.
+- Se creo/actualizo el perfil por MCP con `full_name = guillermo.vaca07@gmail.com`, porque no se proporciono nombre completo separado.
+
+## SQL aplicado en Fase 7.6 a 7.14
+
+No se aplicaron migraciones SQL ni cambios de esquema.
+
+Si se aplico DML por MCP para habilitar usuario interno admin:
+
+```sql
+insert into public.profiles (id, full_name, role, institution, is_active)
+select id, coalesce(email, id::text), 'admin'::public.app_role, null, true
+from auth.users
+where id = '0a379675-ebe1-4601-bb7f-465857b3e8b9'
+on conflict (id) do update
+set role = 'admin'::public.app_role,
+    is_active = true,
+    updated_at = now();
+```
 
 Motivo:
 
@@ -2033,7 +2426,139 @@ Motivo:
 - No se crearon tablas, columnas, enums, indices, policies ni buckets nuevos.
 - No se creo migracion nueva en `supabase/migrations`.
 
-## Riesgos y recomendaciones de Fase 7.6 a 7.9
+## Validacion integral posterior de Fase 7
+
+Fecha: 2026-06-30
+
+### Validacion local con Deno
+
+Se ejecuto `deno check` sobre las 14 Edge Functions locales:
+
+```powershell
+Get-ChildItem supabase/functions -Recurse -Filter index.ts |
+  ForEach-Object { deno check $_.FullName }
+```
+
+Resultado:
+
+- Las 14 funciones pasaron `deno check` sin errores.
+
+Correccion local aplicada para compatibilidad con Deno:
+
+- Se ajusto el uso de `crypto.subtle.digest` para pasar un `ArrayBuffer` explicito en:
+  - `supabase/functions/_shared/case-access.ts`
+  - `supabase/functions/create-case/index.ts`
+  - `supabase/functions/submit-questionnaire/index.ts`
+  - `supabase/functions/request-image-upload/index.ts`
+  - `supabase/functions/finalize-image-upload/index.ts`
+  - `supabase/functions/generate-report/index.ts`
+
+### Validacion remota por flujo anonimo
+
+Caso de prueba:
+
+```json
+{
+  "case_code": "OD-20260630-3F97AFF5",
+  "image_id": "5233a6a9-cd20-4270-9191-92a1bb0533fa"
+}
+```
+
+Resultado resumido:
+
+```json
+{
+  "health_get": 200,
+  "health_post": 405,
+  "create_case": true,
+  "submit_questionnaire": true,
+  "request_upload": true,
+  "finalize_upload": true,
+  "validate_image": true,
+  "validate_quality": "accepted",
+  "run_inference_status": 503,
+  "run_inference_code": "AI_SERVICE_UNAVAILABLE",
+  "get_case_result": true,
+  "signed_read_url": true,
+  "signed_expires": 600
+}
+```
+
+Interpretacion:
+
+- Fase 7.1 a 7.6 funcionan en ruta feliz.
+- Fase 7.7 responde con fallo controlado esperado porque todavia no hay modelo IA activo ni servicio IA configurado.
+- Fase 7.9 funciona con resultado parcial controlado.
+- Fase 7.10 genera URL firmada de lectura por 600 segundos.
+
+### Validacion remota de funciones con Auth requerida
+
+Sin sesion:
+
+```json
+{
+  "review_no_auth": 401,
+  "dashboard_no_auth": 401,
+  "admin_upsert_no_auth": 401,
+  "cleanup_no_auth": 401,
+  "cleanup_get": 405
+}
+```
+
+Interpretacion:
+
+- Las funciones internas bloquean correctamente solicitudes sin Bearer token.
+- `cleanup-expired-case-tokens` rechaza metodo `GET` con `METHOD_NOT_ALLOWED`.
+
+Pendiente para ruta feliz autenticada:
+
+- Probar con un access token valido del usuario admin `0a379675-ebe1-4601-bb7f-465857b3e8b9`.
+- Con UID solo no se puede invocar rutas autenticadas; se requiere token de sesion Supabase.
+- La obtencion del `access_token` queda pendiente a decision del usuario.
+- No se obtiene ni se configura desde SQL Editor.
+- Debe obtenerse mediante login de Supabase Auth, por ejemplo desde PowerShell, Postman/Insomnia o el futuro frontend.
+- No documentar ni guardar el `access_token` plano en este repositorio.
+- Una vez obtenido, usarlo solo en cabecera HTTP:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Funciones pendientes de prueba feliz autenticada con ese token:
+
+- `review-case`
+- `dashboard-metrics`
+- `admin-upsert-ai-model`
+- `cleanup-expired-case-tokens`
+
+### Validacion MCP de logs y auditoria
+
+MCP confirmo registros recientes en `api_request_logs` para:
+
+- `health-check`
+- `create-case`
+- `submit-questionnaire`
+- `request-image-upload`
+- `finalize-image-upload`
+- `validate-image`
+- `run-inference`
+- `get-case-result`
+- `create-signed-read-url`
+- `review-case`
+- `dashboard-metrics`
+- `admin-upsert-ai-model`
+- `cleanup-expired-case-tokens`
+
+MCP confirmo auditoria para el caso de prueba:
+
+- `CASE_CREATED`
+- `QUESTIONNAIRE_SUBMITTED`
+- `IMAGE_UPLOAD_REQUESTED`
+- `IMAGE_UPLOAD_FINALIZED`
+- `IMAGE_QUALITY_CHECKED`
+- `SIGNED_URL_CREATED`
+
+## Riesgos y recomendaciones de Fase 7.6 a 7.14
 
 1. `validate-image` usa validacion tecnica MVP basada en metadata; antes de produccion conviene calcular brillo, contraste y nitidez desde pixeles reales.
 2. `run-inference` queda bloqueada para ruta feliz hasta configurar modelo activo y servicio IA.
@@ -2041,31 +2566,29 @@ Motivo:
 4. `get-case-result` puede devolver resultado parcial si el caso aun no tiene recomendacion; esto es util para estado de progreso, pero el frontend debe mostrarlo claramente.
 5. Mantener buckets privados y no crear politicas amplias sobre `storage.objects`.
 6. No usar lenguaje diagnostico definitivo en mensajes de IA, reporte o resultado.
+7. `review-case` y `dashboard-metrics` requieren prueba feliz con usuarios internos reales y perfiles activos.
+8. `admin-upsert-ai-model` y `cleanup-expired-case-tokens` requieren prueba feliz con usuario interno `admin`.
+9. La invocacion scheduled/service de `cleanup-expired-case-tokens` requiere definir mecanismo de autenticacion interno antes de produccion.
 
 ## Pendiente inmediato
 
-Continuar solo con Fase 7.10 `create-signed-read-url` cuando el usuario lo confirme.
+Continuar solo con Fase 8 cuando el usuario lo confirme.
 
-Antes de implementar Fase 7.10:
+Antes de implementar Fase 8:
 
-1. Leer la subfase 7.10 en `docs/backend_supabase_por_fases.md`.
-2. No avanzar a Fase 8.
-3. Mantener buckets privados.
-4. Devolver solo URLs firmadas temporales.
-5. No devolver `bucket_name` ni `object_path` si no es estrictamente necesario.
-6. Validar `asset_type` y `asset_id` contra el caso.
-7. Registrar auditoria correspondiente.
-8. Registrar `api_request_logs`.
-9. No usar lenguaje diagnostico definitivo.
-10. Documentar cualquier desviacion antes de aplicar.
+1. Leer Fase 8 en `docs/backend_supabase_por_fases.md`.
+2. Confirmar si se aplicaran vistas/RPC mediante migracion SQL.
+3. Revisar seguridad de vistas; preferir `security_invoker = true` si aplica.
+4. No exponer datos crudos sensibles.
+5. Registrar cualquier desviacion antes de aplicar.
 
 ## Siguiente fase pendiente
 
-La siguiente subfase no implementada del documento es:
+La siguiente fase no implementada del documento es:
 
-- Fase 7.10: `create-signed-read-url`
+- Fase 8: vistas y RPC.
 
-No se debe avanzar a Fase 8 hasta terminar Fase 7 y recibir confirmacion explicita del usuario.
+No se debe avanzar a Fase 8 sin confirmacion explicita del usuario.
 
 ## Estado de avance de Fase 7
 
@@ -2080,19 +2603,19 @@ Subfases de Fase 7 segun el documento:
 7. `run-inference` - implementada y desplegada; ruta feliz bloqueada por falta de modelo IA activo/servicio IA.
 8. `generate-report` - implementada y desplegada; ruta feliz depende de recomendacion generada por IA.
 9. `get-case-result` - completa, desplegada y verificada para resultado parcial controlado.
-10. `create-signed-read-url` - pendiente.
-11. `review-case` - pendiente.
-12. `dashboard-metrics` - pendiente.
-13. `admin-upsert-ai-model` - pendiente.
-14. `cleanup-expired-case-tokens` - pendiente.
+10. `create-signed-read-url` - completa, desplegada y verificada.
+11. `review-case` - implementada y desplegada; ruta feliz requiere usuario interno especialista/admin.
+12. `dashboard-metrics` - implementada y desplegada; ruta feliz requiere usuario interno admin/specialist/researcher.
+13. `admin-upsert-ai-model` - implementada y desplegada; ruta feliz requiere usuario interno admin.
+14. `cleanup-expired-case-tokens` - implementada y desplegada; ruta feliz requiere usuario interno admin.
 
 Resumen:
 
-- Completadas, desplegadas y verificadas total o parcialmente segun dependencias externas: 9 de 14.
-- Pendientes de implementar: 5 de 14.
+- Completadas, desplegadas y verificadas total o parcialmente segun dependencias externas: 14 de 14.
+- Pendientes de implementar dentro de Fase 7: 0 de 14.
 - Bloqueo transversal anterior resuelto: `CASE_TOKEN_SECRET` ya fue configurado.
 - Bloqueo actual para ruta feliz completa: falta modelo IA activo y configuracion de servicio IA.
-- Siguiente subfase: Fase 7.10 `create-signed-read-url`.
+- Siguiente fase: Fase 8.
 
 ## Variables de entorno obligatorias
 
