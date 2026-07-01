@@ -1,0 +1,40 @@
+# render.yaml — Configuración de deploy automático para Render
+# Coloca este archivo en la raíz del repositorio
+# Render lo detecta automáticamente al conectar el repo
+
+services:
+  # ── BACKEND: AI Service (Docker) ──────────────────────────
+  - type: web
+    name: oraldiagnostic-ai
+    runtime: docker
+    dockerfilePath: ./ai-service/Dockerfile.deploy
+    dockerContext: ./ai-service
+    plan: free
+    region: oregon
+    
+    # Variables de entorno en producción
+    envVars:
+      - key: AI_AUTH_TOKEN
+        generateValue: true          # Render genera un token aleatorio seguro
+      - key: AI_ALLOW_CONTRACT_FALLBACK
+        value: "true"
+      - key: AI_REQUIRE_CLINICAL_CHECKPOINT
+        value: "false"
+      - key: AI_ENABLE_GRADCAM
+        value: "false"
+      - key: AI_REQUIRE_GRADCAM
+        value: "false"
+      - key: AI_MODEL_NAME
+        value: "oral-lesion-triage-cnn"
+      - key: AI_MODEL_VERSION
+        value: "1.0.0"
+      - key: AI_MODEL_ARCHITECTURE
+        value: "mobilenetv3-small"
+      - key: AI_ENVIRONMENT
+        value: "production"
+      - key: AI_DOWNLOAD_TIMEOUT_SECONDS
+        value: "15"
+      - key: AI_MAX_IMAGE_BYTES
+        value: "10485760"
+
+    healthCheckPath: /health

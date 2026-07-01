@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- PRODUCCIÓN: reemplazar __API_BASE__ con la URL de Render, ej: https://oraldiagnostic-ai.onrender.com -->
+  <meta name="api-base" content="__API_BASE__" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OralDiagnostic — Sistema Inteligente de Triaje Bucal</title>
+  <meta name="description" content="Sistema inteligente de apoyo para el diagnóstico de lesiones bucales sospechosas mediante Inteligencia Artificial. UAGRM - FICCT." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <!-- Logo SVG inline: two neural arcs + salmon dot -->
+        <svg class="brand-logo-svg" viewBox="0 0 110 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Left arc - dark blue -->
+          <g stroke="#1a3a6e" stroke-width="2.2" fill="none">
+            <path d="M8 62 Q10 20 52 10"/>
+            <path d="M8 62 Q30 55 52 10"/>
+            <path d="M8 62 Q28 40 52 10"/>
+            <circle cx="8" cy="62" r="3" fill="#1a3a6e"/>
+            <circle cx="52" cy="10" r="3" fill="#1a3a6e"/>
+            <circle cx="20" cy="38" r="2.5" fill="#1a3a6e"/>
+            <circle cx="35" cy="22" r="2.5" fill="#1a3a6e"/>
+            <circle cx="30" cy="52" r="2.5" fill="#1a3a6e"/>
+            <circle cx="44" cy="42" r="2.5" fill="#1a3a6e"/>
+            <line x1="20" y1="38" x2="8" y2="62"/>
+            <line x1="20" y1="38" x2="35" y2="22"/>
+            <line x1="20" y1="38" x2="30" y2="52"/>
+            <line x1="35" y1="22" x2="52" y2="10"/>
+            <line x1="44" y1="42" x2="52" y2="10"/>
+            <line x1="44" y1="42" x2="30" y2="52"/>
+            <line x1="30" y1="52" x2="8" y2="62"/>
+          </g>
+          <!-- Right arc - teal -->
+          <g stroke="#00b4b4" stroke-width="2.2" fill="none">
+            <path d="M102 62 Q100 20 58 10"/>
+            <path d="M102 62 Q80 55 58 10"/>
+            <path d="M102 62 Q82 40 58 10"/>
+            <circle cx="102" cy="62" r="3" fill="#00b4b4"/>
+            <circle cx="58" cy="10" r="3" fill="#00b4b4"/>
+            <circle cx="90" cy="38" r="2.5" fill="#00b4b4"/>
+            <circle cx="75" cy="22" r="2.5" fill="#00b4b4"/>
+            <circle cx="80" cy="52" r="2.5" fill="#00b4b4"/>
+            <circle cx="66" cy="42" r="2.5" fill="#00b4b4"/>
+            <line x1="90" y1="38" x2="102" y2="62"/>
+            <line x1="90" y1="38" x2="75" y2="22"/>
+            <line x1="90" y1="38" x2="80" y2="52"/>
+            <line x1="75" y1="22" x2="58" y2="10"/>
+            <line x1="66" y1="42" x2="58" y2="10"/>
+            <line x1="66" y1="42" x2="80" y2="52"/>
+            <line x1="80" y1="52" x2="102" y2="62"/>
+          </g>
+          <!-- Center salmon dot -->
+          <ellipse cx="55" cy="36" rx="6" ry="7" fill="#E8725A" opacity="0.9"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-oral">Oral</span><span class="brand-diagnostic">Diagnostic</span>
+          <small>Sistema de Triaje Bucal con IA</small>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="uagrm-badge">
+          <span class="uagrm-u">U</span><span class="uagrm-agrm"><span class="red">AG</span><br><span class="red">RM</span></span>
+          <span class="uagrm-text">Proyecto Nro. <strong>45</strong></span>
+        </div>
+        <div id="api-status" class="api-status checking">
+          <span class="status-dot"></span>
+          <span class="status-label">Conectando...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- WAVE DECORATION -->
+  <div class="wave-top">
+    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,30 C360,60 1080,0 1440,30 L1440,0 L0,0 Z" fill="#1a3a6e"/>
+    </svg>
+  </div>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">IA Clínica · Triaje Preventivo</div>
+      <h1 class="hero-title">
+        Sistema Inteligente de Apoyo para<br/>
+        <span class="highlight-teal">Diagnóstico de Lesiones</span><br/>
+        <span class="highlight-blue">Bucales Sospechosas</span>
+      </h1>
+      <p class="hero-subtitle">
+        Un modelo de Redes Neuronales Convolucionales analiza imágenes de la cavidad oral
+        y clasifica el nivel de sospecha visual para orientar la derivación profesional oportuna.
+      </p>
+      <div class="hero-disclaimer">
+        <span class="disclaimer-icon">⚠️</span>
+        <span>Este sistema es de apoyo al triaje. No emite diagnóstico médico definitivo.</span>
+      </div>
+    </div>
+    <div class="hero-steps">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-info"><strong>Cuestionario</strong><small>Registro de riesgo clínico</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-info"><strong>Imagen</strong><small>Captura o carga de foto</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card active">
+        <div class="step-num">3</div>
+        <div class="step-info"><strong>Análisis IA</strong><small>CNN + Grad-CAM</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-info"><strong>Resultado</strong><small>Nivel de sospecha</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-grid">
+
+    <!-- LEFT: QUESTIONNAIRE + UPLOAD -->
+    <div class="panel panel-left">
+
+      <!-- QUESTIONNAIRE -->
+      <section class="card questionnaire-card" id="questionnaire-section">
+        <div class="card-header">
+          <div class="card-icon blue">📋</div>
+          <div>
+            <h2>Cuestionario de Riesgo</h2>
+            <p>Responda antes del análisis de imagen</p>
+          </div>
+        </div>
+        <form id="questionnaire-form">
+          <div class="form-group">
+            <label for="case-code">Código de caso (anónimo)</label>
+            <div class="input-with-btn">
+              <input type="text" id="case-code" placeholder="Ej. CASO-001" autocomplete="off" />
+              <button type="button" id="gen-code-btn" class="btn-outline-sm">Generar</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="lesion-days">¿Hace cuántos días apareció la lesión?</label>
+            <input type="number" id="lesion-days" placeholder="Ej. 14" min="0" />
+          </div>
+          <div class="questions-grid">
+            <label class="toggle-label" for="q-pain">
+              <span>¿La lesión duele?</span>
+              <input type="checkbox" id="q-pain" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-bleed">
+              <span>¿La lesión sangra?</span>
+              <input type="checkbox" id="q-bleed" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-grow">
+              <span>¿Ha crecido?</span>
+              <input type="checkbox" id="q-grow" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-white">
+              <span>¿Mancha blanca?</span>
+              <input type="checkbox" id="q-white" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-red">
+              <span>¿Mancha roja?</span>
+              <input type="checkbox" id="q-red" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-tobacco">
+              <span>¿Consume tabaco?</span>
+              <input type="checkbox" id="q-tobacco" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-alcohol">
+              <span>¿Consume alcohol?</span>
+              <input type="checkbox" id="q-alcohol" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-swallow">
+              <span>¿Dificultad para tragar?</span>
+              <input type="checkbox" id="q-swallow" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+          </div>
+          <div class="risk-score-bar" id="risk-score-bar">
+            <div class="risk-label-row">
+              <span>Puntaje de riesgo clínico</span>
+              <span id="risk-score-value" class="risk-score-num">0 / 8</span>
+            </div>
+            <div class="risk-bar-track">
+              <div class="risk-bar-fill" id="risk-bar-fill" style="width:0%"></div>
+            </div>
+            <small id="risk-score-hint" class="risk-hint">Complete el cuestionario</small>
+          </div>
+        </form>
+      </section>
+
+      <!-- IMAGE UPLOAD -->
+      <section class="card upload-card" id="upload-section">
+        <div class="card-header">
+          <div class="card-icon teal">🖼️</div>
+          <div>
+            <h2>Imagen Bucal</h2>
+            <p>JPG / PNG · Máx. 10 MB · Mín. 50×50 px</p>
+          </div>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="23" stroke="#00b4b4" stroke-width="2" stroke-dasharray="4 3"/>
+              <path d="M24 32V20M24 20l-5 5M24 20l5 5" stroke="#1a3a6e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="14" y="33" width="20" height="3" rx="1.5" fill="#00b4b4" opacity="0.4"/>
+            </svg>
+          </div>
+          <p class="upload-main-text">Arrastra la imagen aquí</p>
+          <p class="upload-sub-text">o haz clic para seleccionar</p>
+          <input type="file" id="file-input" accept="image/jpeg,image/png" hidden />
+          <button type="button" id="select-file-btn" class="btn-primary">Seleccionar imagen</button>
+          <div class="demo-divider"><span>o</span></div>
+          <button type="button" id="demo-image-btn" class="btn-demo">⚗️ Cargar imagen de demo</button>
+        </div>
+
+        <div class="image-preview-container hidden" id="preview-container">
+          <div class="preview-images">
+            <div class="preview-box">
+              <p class="preview-label">Imagen original</p>
+              <img id="preview-img" src="" alt="Vista previa de imagen bucal" />
+            </div>
+            <div class="preview-box hidden" id="gradcam-box">
+              <p class="preview-label">Mapa Grad-CAM</p>
+              <img id="gradcam-img" src="" alt="Mapa de calor Grad-CAM" />
+              <div class="gradcam-badge">Región relevante para la IA</div>
+            </div>
+          </div>
+          <div class="image-quality-check" id="quality-check">
+            <div class="quality-item" id="q-resolution">
+              <span class="quality-icon">⏳</span> Resolución
+            </div>
+            <div class="quality-item" id="q-size">
+              <span class="quality-icon">⏳</span> Tamaño
+            </div>
+            <div class="quality-item" id="q-format">
+              <span class="quality-icon">⏳</span> Formato
+            </div>
+          </div>
+          <button type="button" id="change-image-btn" class="btn-outline">Cambiar imagen</button>
+        </div>
+
+        <button type="button" id="analyze-btn" class="btn-analyze hidden" disabled>
+          <span id="analyze-btn-text">Analizar imagen con IA</span>
+          <div class="analyze-spinner hidden" id="analyze-spinner"></div>
+        </button>
+      </section>
+    </div>
+
+    <!-- RIGHT: RESULT PANEL -->
+    <div class="panel panel-right">
+      <section class="card result-card" id="result-section">
+        <div class="card-header">
+          <div class="card-icon coral">🤖</div>
+          <div>
+            <h2>Resultado del Análisis</h2>
+            <p>Clasificación MobileNetV3 · CNN Transfer Learning</p>
+          </div>
+        </div>
+
+        <!-- IDLE STATE -->
+        <div id="result-idle" class="result-idle">
+          <div class="idle-illustration">
+            <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="120">
+              <ellipse cx="60" cy="85" rx="40" ry="6" fill="#e8f4f8"/>
+              <rect x="30" y="20" width="60" height="55" rx="8" fill="#f0f8ff" stroke="#00b4b4" stroke-width="1.5"/>
+              <rect x="38" y="30" width="44" height="6" rx="3" fill="#00b4b4" opacity="0.3"/>
+              <rect x="38" y="42" width="30" height="4" rx="2" fill="#1a3a6e" opacity="0.2"/>
+              <rect x="38" y="52" width="38" height="4" rx="2" fill="#1a3a6e" opacity="0.2"/>
+              <circle cx="60" cy="14" r="6" fill="#1a3a6e" opacity="0.15"/>
+              <path d="M56 14 L58 16 L64 10" stroke="#1a3a6e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+            </svg>
+          </div>
+          <p class="idle-title">Esperando imagen</p>
+          <p class="idle-sub">Sube una imagen bucal y presiona "Analizar imagen con IA" para obtener el resultado.</p>
+
+          <!-- MODEL INFO BOX -->
+          <div class="model-info-box">
+            <h4>Arquitectura del Modelo</h4>
+            <div class="model-specs">
+              <div class="spec"><span class="spec-label">Modelo base</span><span class="spec-value">MobileNetV3-Small</span></div>
+              <div class="spec"><span class="spec-label">Técnica</span><span class="spec-value">Transfer Learning</span></div>
+              <div class="spec"><span class="spec-label">Input shape</span><span class="spec-value">224 × 224 × 3</span></div>
+              <div class="spec"><span class="spec-label">Clases</span><span class="spec-value">Baja · Moderada · Alta</span></div>
+              <div class="spec"><span class="spec-label">Explicabilidad</span><span class="spec-value">Grad-CAM</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div id="result-loading" class="result-loading hidden">
+          <div class="loading-brain">
+            <svg width="80" height="60" viewBox="0 0 110 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="spin-logo">
+              <g stroke="#1a3a6e" stroke-width="2" fill="none">
+                <path d="M8 62 Q10 20 52 10"/>
+                <path d="M8 62 Q30 55 52 10"/>
+                <circle cx="20" cy="38" r="2.5" fill="#1a3a6e"/>
+                <circle cx="35" cy="22" r="2.5" fill="#1a3a6e"/>
+                <line x1="20" y1="38" x2="8" y2="62"/><line x1="20" y1="38" x2="35" y2="22"/>
+              </g>
+              <g stroke="#00b4b4" stroke-width="2" fill="none">
+                <path d="M102 62 Q100 20 58 10"/>
+                <path d="M102 62 Q80 55 58 10"/>
+                <circle cx="90" cy="38" r="2.5" fill="#00b4b4"/>
+                <circle cx="75" cy="22" r="2.5" fill="#00b4b4"/>
+                <line x1="90" y1="38" x2="102" y2="62"/><line x1="90" y1="38" x2="75" y2="22"/>
+              </g>
+              <ellipse cx="55" cy="36" rx="5" ry="6" fill="#E8725A"/>
+            </svg>
+          </div>
+          <p class="loading-title">Analizando imagen...</p>
+          <div class="loading-steps">
+            <div class="loading-step" id="ls-preprocess">
+              <div class="ls-dot"></div><span>Preprocesando imagen (224×224px)</span>
+            </div>
+            <div class="loading-step" id="ls-inference">
+              <div class="ls-dot"></div><span>Ejecutando modelo CNN</span>
+            </div>
+            <div class="loading-step" id="ls-gradcam">
+              <div class="ls-dot"></div><span>Generando mapa Grad-CAM</span>
+            </div>
+            <div class="loading-step" id="ls-result">
+              <div class="ls-dot"></div><span>Calculando nivel de sospecha</span>
+            </div>
+          </div>
+          <div class="loading-bar-track">
+            <div class="loading-bar-fill" id="loading-bar"></div>
+          </div>
+        </div>
+
+        <!-- RESULT STATE -->
+        <div id="result-display" class="result-display hidden">
+          <div class="suspicion-meter">
+            <div class="suspicion-level-badge" id="suspicion-badge">
+              <span class="suspicion-icon" id="suspicion-icon">🟢</span>
+              <span class="suspicion-text" id="suspicion-text">Baja Sospecha</span>
+            </div>
+            <div class="probability-ring-container">
+              <svg class="probability-ring" viewBox="0 0 120 120" width="140" height="140">
+                <circle cx="60" cy="60" r="50" stroke="#e8f0f5" stroke-width="10" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke-width="10" fill="none"
+                  stroke-dasharray="314" stroke-dashoffset="314"
+                  stroke-linecap="round"
+                  transform="rotate(-90 60 60)"
+                  id="probability-arc"
+                  class="probability-arc-circle"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-percent" id="ring-percent">0%</span>
+                <span class="ring-label">confianza</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CLASS PROBABILITIES -->
+          <div class="class-probs" id="class-probs">
+            <h4>Distribución de probabilidades</h4>
+            <div class="prob-bar-group">
+              <div class="prob-bar-row">
+                <span class="prob-label">🟢 Baja sospecha</span>
+                <div class="prob-track"><div class="prob-fill low" id="prob-low" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-low">0%</span>
+              </div>
+              <div class="prob-bar-row">
+                <span class="prob-label">🟡 Sospecha moderada</span>
+                <div class="prob-track"><div class="prob-fill moderate" id="prob-moderate" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-moderate">0%</span>
+              </div>
+              <div class="prob-bar-row">
+                <span class="prob-label">🔴 Sospecha alta</span>
+                <div class="prob-track"><div class="prob-fill high" id="prob-high" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-high">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECOMMENDATION BOX -->
+          <div class="recommendation-box" id="recommendation-box">
+            <div class="rec-icon" id="rec-icon">💬</div>
+            <div class="rec-text" id="rec-text"></div>
+          </div>
+
+          <!-- CLINICAL RISK INTEGRATION -->
+          <div class="clinical-integration hidden" id="clinical-integration">
+            <h4>Integración riesgo clínico</h4>
+            <div class="clinical-alert" id="clinical-alert"></div>
+          </div>
+
+          <!-- METADATA -->
+          <div class="result-meta">
+            <div class="meta-item"><span>ID de solicitud</span><code id="meta-request-id">—</code></div>
+            <div class="meta-item"><span>Modelo</span><code id="meta-model">—</code></div>
+            <div class="meta-item"><span>Arquitectura</span><code id="meta-arch">—</code></div>
+            <div class="meta-item"><span>Latencia</span><code id="meta-latency">— ms</code></div>
+          </div>
+
+          <div class="result-actions">
+            <button type="button" id="new-analysis-btn" class="btn-primary">Nuevo análisis</button>
+          </div>
+        </div>
+
+        <!-- ERROR STATE -->
+        <div id="result-error" class="result-error hidden">
+          <div class="error-icon">⚠️</div>
+          <p class="error-title" id="error-title">Error al analizar</p>
+          <p class="error-msg" id="error-msg">Ocurrió un problema inesperado.</p>
+          <button type="button" id="retry-btn" class="btn-primary">Reintentar</button>
+        </div>
+      </section>
+
+      <!-- INFO CARDS -->
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-icon">📱</div>
+          <strong>Accesible</strong>
+          <small>Adaptable a cualquier dispositivo móvil</small>
+        </div>
+        <div class="info-card">
+          <div class="info-icon">🔒</div>
+          <strong>Seguro</strong>
+          <small>Protocolo de anonimización de datos</small>
+        </div>
+        <div class="info-card">
+          <div class="info-icon">🎯</div>
+          <strong>Preventivo</strong>
+          <small>Apoyo al triaje, no diagnóstico clínico</small>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="wave-footer">
+      <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+        <path d="M0,30 C360,0 1080,60 1440,30 L1440,60 L0,60 Z" fill="#1a3a6e"/>
+      </svg>
+    </div>
+    <div class="footer-content">
+      <div class="footer-brand">
+        <span class="brand-oral">Oral</span><span class="brand-diagnostic">Diagnostic</span>
+        <small>Proyecto Nro. 45 · Feria Estudiantil 2026</small>
+      </div>
+      <div class="footer-info">
+        <p>Universidad Autónoma "Gabriel René Moreno" (UAGRM)</p>
+        <p>Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (FICCT)</p>
+        <p>Materia: Programación Ensamblador · Docente: Ing. Valentín Víctor Flores Guzmán</p>
+      </div>
+      <div class="footer-team">
+        <p><strong>Integrantes:</strong></p>
+        <p>Mamani Huanca Saleth Jhoselin &nbsp;·&nbsp; Vaca Roca Guillermo</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

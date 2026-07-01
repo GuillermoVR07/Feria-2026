@@ -5,6 +5,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings, get_settings
 from .gradcam import GradcamUnavailable, generate_gradcam
@@ -15,6 +16,22 @@ from .schemas import GradcamResponse, OralLesionInferenceRequest, OralLesionInfe
 from .security import require_bearer_token
 
 app = FastAPI(title="OralDiagnostic AI Service", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        # Desarrollo local
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "null",
+        # Vercel preview y producción (acepta cualquier subdominio *.vercel.app)
+        "https://oraldiagnostic.vercel.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _loaded_model: LoadedModel | None = None
 

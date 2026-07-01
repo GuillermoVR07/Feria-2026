@@ -1,0 +1,48 @@
+# ============================================================
+# Dockerfile.deploy  —  Imagen optimizada para Render free tier
+# Sin TensorFlow (usa ContractFallbackModel para demo)
+# Build time: ~2 min | Image size: ~300 MB (vs 2 GB con TF)
+# ============================================================
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Variables de entorno para modo demo (Render las sobreescribe desde el panel)
+ENV AI_AUTH_TOKEN=""
+ENV AI_ALLOW_CONTRACT_FALLBACK=true
+ENV AI_REQUIRE_CLINICAL_CHECKPOINT=false
+ENV AI_ENABLE_GRADCAM=false
+ENV AI_REQUIRE_GRADCAM=false
+ENV AI_MODEL_NAME=oral-lesion-triage-cnn
+ENV AI_MODEL_VERSION=1.0.0
+ENV AI_MODEL_ARCHITECTURE=mobilenetv3-small
+ENV AI_ENVIRONMENT=production
+
+WORKDIR /app
+
+# Solo libs del sistema necesarias para Pillow
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       libjpeg-dev \
+       libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar dependencias ligeras (sin TensorFlow)
+COPY requirements-deploy.txt .
+RUN pip install --no-cache-dir -r requirements-deploy.txt
+
+# Copiar código de la app
+COPY app ./app
+
+# Crear carpeta de modelos vacía (no hay .keras en deploy demo)
+RUN mkdir -p ./models
+
+EXPOSE 8000
+
+# Health check para que Render sepa cuando está listo
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

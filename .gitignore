@@ -5,12 +5,31 @@ ai-service/__pycache__/
 ai-service/app/__pycache__/
 ai-service/tests/__pycache__/
 ai-service/.pytest_cache/
+
+# Modelos grandes — NO subir al repositorio
 ai-service/models/**/*.keras
 ai-service/models/**/*.h5
 ai-service/models/**/*.onnx
 ai-service/models/**/*.pt
 ai-service/models/**/*.pth
 ai-service/models/**/*.tflite
-venv
-/venv
+
+# Entornos virtuales genéricos
 venv/
+.venv/
+env/
+
+# Vercel
+.vercel/
+
+# Node (si se agrega en el futuro)
+node_modules/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Editor
+.vscode/settings.json
+*.DS_Store
+Thumbs.db
