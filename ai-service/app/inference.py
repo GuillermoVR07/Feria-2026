@@ -56,12 +56,15 @@ def _normalize_three_class_output(output: np.ndarray) -> tuple[np.ndarray, int]:
 
 
 def run_prediction(model: LoadedModel, batch: np.ndarray, settings: Settings) -> PredictionResult:
-    try:
-        from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
-
-        model_input = preprocess_input(np.array(batch, copy=True))
-    except Exception:
+    if model.source == "contract-fallback":
         model_input = batch / 255.0
+    else:
+        try:
+            from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
+
+            model_input = preprocess_input(np.array(batch, copy=True))
+        except Exception:
+            model_input = batch / 255.0
 
     output = model.model.predict(model_input, verbose=0)
     probabilities, raw_class_index = _normalize_three_class_output(output)

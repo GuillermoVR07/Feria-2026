@@ -51,6 +51,14 @@ def load_model(settings: Settings) -> LoadedModel:
     if settings.require_clinical_checkpoint:
         raise ModelLoadError("No existe checkpoint clinico adaptado en AI_MODEL_PATH.")
 
+    if settings.allow_contract_fallback:
+        return LoadedModel(
+            model=ContractFallbackModel(),
+            source="contract-fallback",
+            clinically_adapted=False,
+            warnings=["CONTRACT_FALLBACK_NO_VALIDO_PARA_INFERENCIA_REAL"],
+        )
+
     try:
         import tensorflow as tf
 
@@ -66,11 +74,4 @@ def load_model(settings: Settings) -> LoadedModel:
             warnings=["BASE_MODEL_IMAGENET_NO_VALIDADO_CLINICAMENTE"],
         )
     except Exception as exc:
-        if settings.allow_contract_fallback:
-            return LoadedModel(
-                model=ContractFallbackModel(),
-                source="contract-fallback",
-                clinically_adapted=False,
-                warnings=["CONTRACT_FALLBACK_NO_VALIDO_PARA_INFERENCIA_REAL"],
-            )
         raise ModelLoadError("No se pudo cargar MobileNetV3Small preentrenado.") from exc

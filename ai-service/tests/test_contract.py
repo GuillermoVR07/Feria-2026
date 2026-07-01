@@ -20,6 +20,7 @@ def test_inference_contract_with_fallback(monkeypatch):
     monkeypatch.setenv("AI_AUTH_TOKEN", "secret")
     monkeypatch.setenv("AI_ALLOW_CONTRACT_FALLBACK", "true")
     monkeypatch.setenv("AI_ENABLE_GRADCAM", "false")
+    monkeypatch.setenv("AI_REQUIRE_GRADCAM", "false")
 
     def fake_download(_image_url, _settings):
         return _png_bytes()

@@ -24,6 +24,7 @@ class Settings:
     environment: str
     require_clinical_checkpoint: bool
     enable_gradcam: bool
+    require_gradcam: bool
     download_timeout_seconds: int
     max_image_bytes: int
     allow_contract_fallback: bool
@@ -46,6 +47,7 @@ def get_settings() -> Settings:
         environment=os.getenv("AI_ENVIRONMENT", "local"),
         require_clinical_checkpoint=_bool_env("AI_REQUIRE_CLINICAL_CHECKPOINT", False),
         enable_gradcam=_bool_env("AI_ENABLE_GRADCAM", True),
+        require_gradcam=_bool_env("AI_REQUIRE_GRADCAM", True),
         download_timeout_seconds=int(os.getenv("AI_DOWNLOAD_TIMEOUT_SECONDS", "10")),
         max_image_bytes=int(os.getenv("AI_MAX_IMAGE_BYTES", "10485760")),
         allow_contract_fallback=_bool_env("AI_ALLOW_CONTRACT_FALLBACK", False),

@@ -71,7 +71,12 @@ def oral_lesion_inference(
             )
             gradcam_mime_type = "image/png"
             gradcam = GradcamResponse(content_type=gradcam_mime_type, base64=gradcam_base64)
-        except GradcamUnavailable:
+        except GradcamUnavailable as exc:
+            if settings.require_gradcam:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Grad-CAM es obligatorio y no pudo generarse.",
+                ) from exc
             warnings.append("GRADCAM_UNAVAILABLE")
 
         latency_ms = int((time.perf_counter() - started_at) * 1000)

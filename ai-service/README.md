@@ -36,7 +36,8 @@ Microservicio FastAPI para la inferencia IA de OralDiagnostic.
 ### Fase 5 - Grad-CAM
 
 - Intenta generar Grad-CAM cuando el modelo permite gradientes sobre una capa convolucional.
-- Si no puede generarlo, no inventa imagen y devuelve advertencia.
+- Grad-CAM queda obligatorio por defecto con `AI_REQUIRE_GRADCAM=true`.
+- Si se desactiva la obligatoriedad para pruebas, no inventa imagen y devuelve advertencia.
 
 ### Fase 6 - Pruebas y despliegue
 
@@ -65,6 +66,8 @@ AI_MODEL_NAME=oral-lesion-triage-cnn
 AI_MODEL_VERSION=1.0.0
 AI_MODEL_ARCHITECTURE=mobilenetv3-small
 AI_REQUIRE_CLINICAL_CHECKPOINT=false
+AI_ENABLE_GRADCAM=true
+AI_REQUIRE_GRADCAM=true
 ```
 
 Para produccion, usar un checkpoint adaptado a lesiones bucales y poner:
