@@ -1,0 +1,12 @@
+ai-service/.env
+ai-service/.venv/
+ai-service/__pycache__/
+ai-service/app/__pycache__/
+ai-service/tests/__pycache__/
+ai-service/.pytest_cache/
+ai-service/models/**/*.keras
+ai-service/models/**/*.h5
+ai-service/models/**/*.onnx
+ai-service/models/**/*.pt
+ai-service/models/**/*.pth
+ai-service/models/**/*.tflite
