@@ -28,13 +28,13 @@ El avance actual cubre:
 - Fase 7.13 implementada, desplegada y validada en seguridad basica: Edge Function `admin-upsert-ai-model`.
 - Fase 7.14 implementada, desplegada y validada en seguridad basica: Edge Function `cleanup-expired-case-tokens`.
 
-No se avanzo a Fase 8. Fase 7 ya quedo implementada completa a nivel de Edge Functions, con pruebas felices pendientes solo donde falta usuario interno con perfil activo.
+Fase 7 ya quedo implementada completa a nivel de Edge Functions, con pruebas felices pendientes solo donde falta usuario interno con perfil activo o servicio IA operativo. Las Fases 8 y 9 se documentan juntas en `docs/fase_8.md`.
 
 Bloqueo real para ruta feliz completa de 7.7 a 7.8:
 
-- `public.ai_models` no tiene ningun modelo activo.
+- `public.ai_models` ya tiene registrado el modelo MVP inicial, pero esta inactivo por decision explicita del usuario.
 - `run-inference` requiere un modelo con `is_active = true` segun el documento.
-- No se creo un modelo ficticio porque eso corresponderia a configuracion real/administrativa y no debe inventarse.
+- No se activo el modelo porque aun no existe `AI_SERVICE_URL`/`AI_SERVICE_TOKEN` ni servicio IA operativo.
 - Hasta configurar modelo IA activo y `AI_SERVICE_URL`/`AI_SERVICE_TOKEN`, `run-inference` responde de forma controlada con `AI_SERVICE_UNAVAILABLE`.
 
 Nota importante de Fase 7.4:
@@ -2572,23 +2572,25 @@ MCP confirmo auditoria para el caso de prueba:
 
 ## Pendiente inmediato
 
-Continuar solo con Fase 8 cuando el usuario lo confirme.
+Fases 8 y 9 ya fueron implementadas y documentadas juntas en `docs/fase_8.md`.
 
-Antes de implementar Fase 8:
+Continuar solo con Fase 10 cuando el usuario lo confirme.
 
-1. Leer Fase 8 en `docs/backend_supabase_por_fases.md`.
-2. Confirmar si se aplicaran vistas/RPC mediante migracion SQL.
-3. Revisar seguridad de vistas; preferir `security_invoker = true` si aplica.
-4. No exponer datos crudos sensibles.
+Antes de implementar Fase 10:
+
+1. Leer Fase 10 en `docs/backend_supabase_por_fases.md`.
+2. Confirmar si el motor de recomendacion debe avanzar con reglas y datos existentes mientras la IA real sigue inactiva.
+3. Mantener lenguaje preventivo, no diagnostico.
+4. No activar `ai_models` hasta configurar `AI_SERVICE_URL` y servicio IA operativo.
 5. Registrar cualquier desviacion antes de aplicar.
 
 ## Siguiente fase pendiente
 
 La siguiente fase no implementada del documento es:
 
-- Fase 8: vistas y RPC.
+- Fase 10: recomendacion preventiva.
 
-No se debe avanzar a Fase 8 sin confirmacion explicita del usuario.
+No se debe avanzar a Fase 10 sin confirmacion explicita del usuario.
 
 ## Estado de avance de Fase 7
 
@@ -2614,8 +2616,8 @@ Resumen:
 - Completadas, desplegadas y verificadas total o parcialmente segun dependencias externas: 14 de 14.
 - Pendientes de implementar dentro de Fase 7: 0 de 14.
 - Bloqueo transversal anterior resuelto: `CASE_TOKEN_SECRET` ya fue configurado.
-- Bloqueo actual para ruta feliz completa: falta modelo IA activo y configuracion de servicio IA.
-- Siguiente fase: Fase 8.
+- Bloqueo actual para ruta feliz completa: modelo IA registrado pero inactivo; falta configuracion de servicio IA.
+- Siguiente fase: Fase 10.
 
 ## Variables de entorno obligatorias
 
