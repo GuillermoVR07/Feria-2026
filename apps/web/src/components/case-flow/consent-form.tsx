@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
-import { useForm, useWatch } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -63,15 +63,18 @@ export function ConsentForm() {
           </Alert>
 
           <Label className="flex items-start gap-3 rounded-lg border bg-card p-3">
-            <Checkbox
-              checked={accepted === true}
-              onCheckedChange={(checked) => {
-                form.setValue("accepted", checked === true ? true : (undefined as unknown as true), {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }}
-              aria-invalid={Boolean(form.formState.errors.accepted)}
+            <Controller
+              name="accepted"
+              control={form.control}
+              render={({ field }) => (
+                <Checkbox
+                  checked={field.value === true}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked === true ? true : undefined)
+                  }}
+                  aria-invalid={Boolean(form.formState.errors.accepted)}
+                />
+              )}
             />
             <span className="grid gap-1">
               <span>Acepto participar en esta demo anonima.</span>

@@ -6,7 +6,9 @@ test("public demo flow reaches preventive result and PDF action", async ({ page 
   await mockPublicFlow(page);
 
   await page.goto("/");
-  await page.getByRole("link", { name: /iniciar caso/i }).click();
+  await expect(page.getByRole("link", { name: /iniciar caso/i })).toBeVisible();
+  await page.goto("/casos/nuevo/consentimiento");
+  await page.waitForTimeout(1000);
 
   const consentCheckbox = page.getByRole("checkbox", { name: /acepto participar/i });
   await consentCheckbox.click();

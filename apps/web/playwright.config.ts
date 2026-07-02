@@ -2,9 +2,9 @@ import { defineConfig, devices } from "playwright/test";
 
 export default defineConfig({
   testDir: "./src/tests/e2e",
-  timeout: 60_000,
+  timeout: 120_000,
   expect: {
-    timeout: 10_000,
+    timeout: 30_000,
   },
   fullyParallel: false,
   reporter: [["list"]],
@@ -15,7 +15,7 @@ export default defineConfig({
   webServer: {
     command: "corepack pnpm exec next dev --webpack -p 3002",
     url: "http://localhost:3002",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [

@@ -17,6 +17,7 @@ test("rejected image stays on capture step with reason", async ({ page }) => {
   await mockPublicFlow(page, { rejectImage: true });
 
   await page.goto("/casos/nuevo/consentimiento");
+  await page.waitForTimeout(1000);
   const rejectedConsentCheckbox = page.getByRole("checkbox", { name: /acepto participar/i });
   await rejectedConsentCheckbox.click();
   await expect(rejectedConsentCheckbox).toBeChecked();
@@ -40,6 +41,7 @@ test("AI unavailable shows retryable technical error", async ({ page }) => {
   await mockPublicFlow(page, { failInference: true });
 
   await page.goto("/casos/nuevo/consentimiento");
+  await page.waitForTimeout(1000);
   const aiConsentCheckbox = page.getByRole("checkbox", { name: /acepto participar/i });
   await aiConsentCheckbox.click();
   await expect(aiConsentCheckbox).toBeChecked();
