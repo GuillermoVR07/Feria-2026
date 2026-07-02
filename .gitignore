@@ -24,6 +24,22 @@ env/
 
 # Node (si se agrega en el futuro)
 node_modules/
+apps/**/node_modules/
+apps/**/.next/
+apps/**/out/
+apps/**/dist/
+apps/**/.env.local
+apps/**/.env*.local
+apps/**/coverage/
+apps/**/playwright-report/
+apps/**/test-results/
+apps/**/.next-dev.*.log
+apps/**/.serwist/
+apps/**/public/sw.js
+apps/**/public/workbox-*.js
+apps/**/public/worker-*.js
+apps/**/public/fallback-*.js
+*.tsbuildinfo
 
 # Supabase local
 supabase/.branches/
