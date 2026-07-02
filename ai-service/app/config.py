@@ -37,7 +37,7 @@ class Settings:
 def get_settings() -> Settings:
     return Settings(
         auth_token=os.getenv("AI_AUTH_TOKEN", ""),
-        model_path=os.getenv("AI_MODEL_PATH", "/app/models/oral-lesion-triage-cnn/1.0.0/model.keras"),
+        model_path=os.getenv("AI_MODEL_PATH", "/home/user/app/models/oral-lesion-triage-cnn/1.0.0/model.keras"),
         model_name=os.getenv("AI_MODEL_NAME", "oral-lesion-triage-cnn"),
         model_version=os.getenv("AI_MODEL_VERSION", "1.0.0"),
         model_architecture=os.getenv("AI_MODEL_ARCHITECTURE", "mobilenetv3-small"),

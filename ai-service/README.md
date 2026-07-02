@@ -1,6 +1,17 @@
+---
+title: OralDiagnostic AI Service
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8000
+---
+
 # OralDiagnostic AI Service
 
 Microservicio FastAPI para la inferencia IA de OralDiagnostic.
+
+Este repositorio esta preparado para desplegarse como Docker Space en Hugging Face.
+No necesitas Docker Desktop local: Hugging Face construye la imagen en la nube.
 
 ## Fases implementadas
 
@@ -66,6 +77,7 @@ AI_MODEL_NAME=oral-lesion-triage-cnn
 AI_MODEL_VERSION=1.0.0
 AI_MODEL_ARCHITECTURE=mobilenetv3-small
 AI_REQUIRE_CLINICAL_CHECKPOINT=false
+AI_ALLOW_CONTRACT_FALLBACK=false
 AI_ENABLE_GRADCAM=true
 AI_REQUIRE_GRADCAM=true
 ```

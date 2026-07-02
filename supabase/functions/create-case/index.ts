@@ -314,7 +314,7 @@ Deno.serve(async (request: Request) => {
 
     caseId = caseRecord.id
 
-    const { error: consentError } = await adminClient
+    const { data: consentRecord, error: consentError } = await adminClient
       .from('consent_records')
       .insert({
         case_id: caseId,
@@ -324,8 +324,10 @@ Deno.serve(async (request: Request) => {
           origen: 'create-case'
         }
       })
+      .select('id')
+      .single()
 
-    if (consentError) {
+    if (consentError || !consentRecord) {
       throw new ApiError('INTERNAL_ERROR', 'No se pudo registrar el consentimiento.', 500)
     }
 
@@ -341,6 +343,18 @@ Deno.serve(async (request: Request) => {
     if (tokenError) {
       throw new ApiError('INTERNAL_ERROR', 'No se pudo registrar el token temporal.', 500)
     }
+
+    await logAuditEvent(adminClient, {
+      actorId,
+      action: 'CONSENT_ACCEPTED',
+      entityType: 'consent_records',
+      entityId: consentRecord.id,
+      caseId,
+      metadata: {
+        case_code: caseRecord.case_code,
+        consent_version: payload.consent.consent_version
+      }
+    })
 
     await logAuditEvent(adminClient, {
       actorId,

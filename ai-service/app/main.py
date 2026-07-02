@@ -26,6 +26,18 @@ def get_loaded_model(settings: Settings) -> LoadedModel:
     return _loaded_model
 
 
+@app.get("/")
+def root(settings: Settings = Depends(get_settings)) -> dict[str, object]:
+    return {
+        "service": "oraldiagnostic-ai-service",
+        "status": "running",
+        "health_url": "/health",
+        "inference_url": "/v1/inference/oral-lesion",
+        "model_name": settings.model_name,
+        "model_version": settings.model_version,
+    }
+
+
 @app.get("/health")
 def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     return {
