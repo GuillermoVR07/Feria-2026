@@ -10,10 +10,19 @@ La carpeta ya esta preparada para Docker Spaces:
 - `Dockerfile` expone FastAPI en el puerto `8000`.
 - `requirements.txt` usa TensorFlow para Linux, sin `tensorflow-intel`.
 - `.dockerignore` no excluye modelos, para que Hugging Face pueda copiar `models/` al contenedor.
+- Si `models/oral-lesion-triage-cnn/1.0.0/model.keras` no existe, el build crea un checkpoint tecnico sintetico para pruebas.
 
 ## 2. Modo de prueba tecnica sin modelo clinico
 
 Usa este modo solo para comprobar que Supabase puede llamar al servicio. No es inferencia medica real.
+
+El Dockerfile genera automaticamente:
+
+```text
+models/oral-lesion-triage-cnn/1.0.0/model.keras
+```
+
+si el archivo no fue subido previamente. Ese checkpoint usa una base MobileNetV3Small y una cabeza de 3 clases entrenada con imagenes sinteticas. Sirve para validar el flujo, no para uso clinico.
 
 En Hugging Face, configura estos valores en `Settings` -> `Variables and secrets`:
 
@@ -34,9 +43,9 @@ AI_INPUT_HEIGHT=224
 AI_INPUT_WIDTH=224
 AI_INPUT_CHANNELS=3
 AI_ENVIRONMENT=huggingface
-AI_REQUIRE_CLINICAL_CHECKPOINT=false
-AI_ALLOW_CONTRACT_FALLBACK=true
-AI_ENABLE_GRADCAM=false
+AI_REQUIRE_CLINICAL_CHECKPOINT=true
+AI_ALLOW_CONTRACT_FALLBACK=false
+AI_ENABLE_GRADCAM=true
 AI_REQUIRE_GRADCAM=false
 AI_DOWNLOAD_TIMEOUT_SECONDS=10
 AI_MAX_IMAGE_BYTES=10485760

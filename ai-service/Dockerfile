@@ -27,6 +27,10 @@ RUN pip install --upgrade pip \
 
 COPY --chown=user app ./app
 COPY --chown=user models ./models
+COPY --chown=user scripts ./scripts
+
+RUN python scripts/create_synthetic_oral_triage_model.py --if-missing \
+    && chown -R user:user models
 
 USER user
 
