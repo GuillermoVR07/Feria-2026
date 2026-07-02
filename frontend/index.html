@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- PRODUCCIÓN: apuntando al backend en Render -->
+  <meta name="api-base" content="https://oraldiagnostic-ai.onrender.com" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OralDiagnostic — Triaje Inteligente de Lesiones Bucales · UAGRM</title>
+  <meta name="description" content="Sistema de triaje inteligente para detección temprana de lesiones bucales sospechosas en Bolivia. Enfocado en el impacto del consumo de coca en la salud oral. UAGRM - FICCT." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==================== IMPACT MODAL ==================== -->
+  <div id="impact-modal" class="impact-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="impact-title">
+    <div class="impact-modal-card">
+      <div class="impact-modal-header">
+        <img src="logo.png" alt="OralDiagnostic Logo" class="impact-logo" />
+        <div class="impact-header-text">
+          <span class="impact-tag">🌿 Problema de Salud Pública · Bolivia</span>
+          <h2 id="impact-title">El cáncer oral tiene cura si se detecta a tiempo</h2>
+        </div>
+      </div>
+      <div class="impact-stats">
+        <div class="impact-stat">
+          <span class="istat-num">80%</span>
+          <span class="istat-label">de casos de cáncer oral se curan si se detectan en etapa temprana</span>
+        </div>
+        <div class="impact-stat accent">
+          <span class="istat-num">3°</span>
+          <span class="istat-label">Bolivia entre los países con mayor prevalencia de cáncer oral en Latinoamérica</span>
+        </div>
+        <div class="impact-stat">
+          <span class="istat-num">8×</span>
+          <span class="istat-label">mayor riesgo de lesiones bucales en consumidores habituales de hoja de coca</span>
+        </div>
+      </div>
+      <p class="impact-desc">
+        El <strong>masticado crónico de hoja de coca</strong> — práctica cultural extendida en Bolivia — genera fricción mecánica constante y exposición a alcaloides sobre la mucosa oral, siendo un factor de riesgo documentado para el desarrollo de leucoplasia, eritroplasia y carcinoma escamocelular bucal.
+      </p>
+      <p class="impact-desc">
+        <strong>OralDiagnostic</strong> aplica Inteligencia Artificial (CNN + Grad-CAM) para apoyar el triaje preventivo de estas lesiones, reduciendo la brecha de acceso a especialistas en zonas rurales y periurbanas de Bolivia.
+      </p>
+      <div class="impact-disclaimer">
+        ⚠️ Este sistema <strong>no emite diagnóstico médico</strong>. Es una herramienta de apoyo al triaje preventivo.
+      </div>
+      <button id="impact-close-btn" class="btn-impact-start">
+        <span>Iniciar Triaje Preventivo</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <img src="logo.png" alt="OralDiagnostic" class="brand-logo-img" />
+        <div class="brand-text">
+          <span><span class="brand-oral">Oral</span><span class="brand-diagnostic">Diagnostic</span></span>
+          <small>Sistema de Triaje Bucal con IA · Bolivia</small>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="uagrm-badge">
+          <span class="uagrm-u">U</span><span class="uagrm-agrm"><span class="red">AG</span><br><span class="red">RM</span></span>
+          <span class="uagrm-text">Proyecto Nro. <strong>45</strong></span>
+        </div>
+        <div id="api-status" class="api-status checking">
+          <span class="status-dot"></span>
+          <span class="status-label">Conectando...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- WAVE -->
+  <div class="wave-top">
+    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,30 C360,60 1080,0 1440,30 L1440,0 L0,0 Z" fill="#1a3a6e"/>
+    </svg>
+  </div>
+
+  <!-- ==================== HERO ==================== -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">🌿 Cáncer Oral · Detección Temprana · Bolivia</div>
+      <h1 class="hero-title">
+        IA para detectar lesiones bucales<br/>
+        <span class="highlight-teal">causadas por el consumo de coca</span>
+      </h1>
+      <p class="hero-subtitle">
+        Una herramienta de impacto social que aplica Redes Neuronales Convolucionales para apoyar
+        el triaje preventivo en poblaciones con acceso limitado a especialistas.
+      </p>
+      <div class="hero-disclaimer">
+        <span class="disclaimer-icon">⚠️</span>
+        <span>Apoyo al triaje preventivo. No emite diagnóstico médico definitivo.</span>
+      </div>
+    </div>
+    <div class="hero-steps">
+      <div class="step-card" id="step1">
+        <div class="step-num">1</div>
+        <div class="step-info"><strong>Cuestionario</strong><small>Factores de riesgo</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card" id="step2">
+        <div class="step-num">2</div>
+        <div class="step-info"><strong>Imagen</strong><small>Foto de la lesión</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card active" id="step3">
+        <div class="step-num">3</div>
+        <div class="step-info"><strong>Análisis IA</strong><small>CNN + Grad-CAM</small></div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-card" id="step4">
+        <div class="step-num">4</div>
+        <div class="step-info"><strong>Reporte PDF</strong><small>Derivación médica</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MAIN GRID ==================== -->
+  <main class="main-grid">
+
+    <!-- LEFT -->
+    <div class="panel panel-left">
+
+      <!-- QUESTIONNAIRE -->
+      <section class="card questionnaire-card" id="questionnaire-section">
+        <div class="card-header">
+          <div class="card-icon blue">📋</div>
+          <div>
+            <h2>Cuestionario de Riesgo</h2>
+            <p>Factores clínicos y hábitos del paciente</p>
+          </div>
+        </div>
+        <form id="questionnaire-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="case-code">Código de caso (anónimo)</label>
+              <div class="input-with-btn">
+                <input type="text" id="case-code" placeholder="Ej. CASO-001" autocomplete="off" />
+                <button type="button" id="gen-code-btn" class="btn-outline-sm">Generar</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="lesion-days">Días desde que apareció la lesión</label>
+              <input type="number" id="lesion-days" placeholder="Ej. 14" min="0" max="3650" />
+            </div>
+          </div>
+
+          <div class="section-label">
+            <span class="section-icon">🌿</span>
+            Hábitos de riesgo — consumo de coca
+          </div>
+          <div class="questions-grid">
+            <label class="toggle-label coca-risk" for="q-coca">
+              <span>¿Mastica hoja de coca?</span>
+              <input type="checkbox" id="q-coca" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label coca-risk" for="q-coca-freq">
+              <span>¿Consumo diario / frecuente?</span>
+              <input type="checkbox" id="q-coca-freq" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label coca-risk" for="q-bicarbonate">
+              <span>¿Usa bicarbonato con la coca?</span>
+              <input type="checkbox" id="q-bicarbonate" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label coca-risk" for="q-years">
+              <span>¿Más de 5 años de consumo?</span>
+              <input type="checkbox" id="q-years" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+          </div>
+
+          <div class="section-label">
+            <span class="section-icon">⚕️</span>
+            Síntomas y otros factores
+          </div>
+          <div class="questions-grid">
+            <label class="toggle-label" for="q-pain">
+              <span>¿La lesión duele?</span>
+              <input type="checkbox" id="q-pain" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-bleed">
+              <span>¿La lesión sangra?</span>
+              <input type="checkbox" id="q-bleed" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-grow">
+              <span>¿Ha crecido?</span>
+              <input type="checkbox" id="q-grow" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-white">
+              <span>¿Mancha blanca?</span>
+              <input type="checkbox" id="q-white" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-red">
+              <span>¿Mancha roja?</span>
+              <input type="checkbox" id="q-red" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-tobacco">
+              <span>¿Consume tabaco?</span>
+              <input type="checkbox" id="q-tobacco" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-alcohol">
+              <span>¿Consume alcohol?</span>
+              <input type="checkbox" id="q-alcohol" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+            <label class="toggle-label" for="q-swallow">
+              <span>¿Dificultad para tragar?</span>
+              <input type="checkbox" id="q-swallow" class="risk-toggle" />
+              <span class="toggle-switch"></span>
+            </label>
+          </div>
+
+          <div class="risk-score-bar" id="risk-score-bar">
+            <div class="risk-label-row">
+              <span>Puntaje de riesgo clínico</span>
+              <span id="risk-score-value" class="risk-score-num">0 / 12</span>
+            </div>
+            <div class="risk-bar-track">
+              <div class="risk-bar-fill" id="risk-bar-fill" style="width:0%"></div>
+            </div>
+            <small id="risk-score-hint" class="risk-hint">Complete el cuestionario</small>
+          </div>
+        </form>
+      </section>
+
+      <!-- IMAGE UPLOAD -->
+      <section class="card upload-card" id="upload-section">
+        <div class="card-header">
+          <div class="card-icon teal">🖼️</div>
+          <div>
+            <h2>Imagen Bucal</h2>
+            <p>JPG / PNG · Máx. 10 MB — Foco en la lesión</p>
+          </div>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <circle cx="26" cy="26" r="24" stroke="#00b4b4" stroke-width="2" stroke-dasharray="4 3"/>
+              <path d="M26 34V22M26 22l-5 5M26 22l5 5" stroke="#1a3a6e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="16" y="36" width="20" height="3" rx="1.5" fill="#00b4b4" opacity="0.4"/>
+            </svg>
+          </div>
+          <p class="upload-main-text">Arrastra la imagen aquí</p>
+          <p class="upload-sub-text">o haz clic para seleccionar</p>
+          <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" hidden />
+          <button type="button" id="select-file-btn" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Seleccionar imagen
+          </button>
+          <div class="demo-divider"><span>o prueba la demo</span></div>
+          <button type="button" id="demo-image-btn" class="btn-demo">🔬 Cargar imagen de demostración</button>
+        </div>
+
+        <div class="image-preview-container hidden" id="preview-container">
+          <div class="preview-images">
+            <div class="preview-box" id="original-box">
+              <p class="preview-label">Imagen original</p>
+              <div class="scanner-wrapper" id="scanner-wrapper">
+                <img id="preview-img" src="" alt="Vista previa de imagen bucal" />
+                <div class="scanner-line hidden" id="scanner-line"></div>
+                <div class="scanner-corners"></div>
+              </div>
+            </div>
+            <div class="preview-box hidden" id="gradcam-box">
+              <p class="preview-label">Mapa Grad-CAM</p>
+              <img id="gradcam-img" src="" alt="Mapa de calor Grad-CAM" />
+              <div class="gradcam-badge">Región relevante identificada por IA</div>
+            </div>
+          </div>
+          <div class="image-quality-check" id="quality-check">
+            <div class="quality-item" id="q-resolution"><span class="quality-icon">⏳</span> Resolución</div>
+            <div class="quality-item" id="q-size"><span class="quality-icon">⏳</span> Tamaño</div>
+            <div class="quality-item" id="q-format"><span class="quality-icon">⏳</span> Formato</div>
+          </div>
+          <button type="button" id="change-image-btn" class="btn-outline">Cambiar imagen</button>
+        </div>
+
+        <button type="button" id="analyze-btn" class="btn-analyze hidden" disabled>
+          <span id="analyze-btn-text">Analizar imagen con IA</span>
+          <div class="analyze-spinner hidden" id="analyze-spinner"></div>
+        </button>
+      </section>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="panel panel-right">
+      <section class="card result-card" id="result-section">
+        <div class="card-header">
+          <div class="card-icon coral">🤖</div>
+          <div>
+            <h2>Resultado del Análisis</h2>
+            <p>MobileNetV3-Small · CNN Transfer Learning · Grad-CAM</p>
+          </div>
+        </div>
+
+        <!-- IDLE -->
+        <div id="result-idle" class="result-idle">
+          <div class="idle-illustration">
+            <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="120">
+              <ellipse cx="60" cy="85" rx="40" ry="6" fill="#e8f4f8"/>
+              <rect x="30" y="20" width="60" height="55" rx="8" fill="#f0f8ff" stroke="#00b4b4" stroke-width="1.5"/>
+              <rect x="38" y="30" width="44" height="6" rx="3" fill="#00b4b4" opacity="0.3"/>
+              <rect x="38" y="42" width="30" height="4" rx="2" fill="#1a3a6e" opacity="0.2"/>
+              <rect x="38" y="52" width="38" height="4" rx="2" fill="#1a3a6e" opacity="0.2"/>
+              <circle cx="60" cy="14" r="6" fill="#1a3a6e" opacity="0.15"/>
+              <path d="M56 14 L58 16 L64 10" stroke="#1a3a6e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+            </svg>
+          </div>
+          <p class="idle-title">Esperando imagen bucal</p>
+          <p class="idle-sub">Sube una fotografía de la lesión y presiona "Analizar imagen con IA" para obtener el resultado preventivo.</p>
+          <div class="model-info-box">
+            <h4>Arquitectura del Modelo</h4>
+            <div class="model-specs">
+              <div class="spec"><span class="spec-label">Modelo base</span><span class="spec-value">MobileNetV3-Small</span></div>
+              <div class="spec"><span class="spec-label">Técnica</span><span class="spec-value">Transfer Learning</span></div>
+              <div class="spec"><span class="spec-label">Input</span><span class="spec-value">224 × 224 × 3 px</span></div>
+              <div class="spec"><span class="spec-label">Clases</span><span class="spec-value">Baja · Moderada · Alta</span></div>
+              <div class="spec"><span class="spec-label">Explicabilidad</span><span class="spec-value">Grad-CAM</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="result-loading" class="result-loading hidden">
+          <div class="loading-brain">
+            <svg width="80" height="60" viewBox="0 0 110 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="spin-logo">
+              <g stroke="#1a3a6e" stroke-width="2" fill="none">
+                <path d="M8 62 Q10 20 52 10"/><path d="M8 62 Q30 55 52 10"/>
+                <circle cx="20" cy="38" r="2.5" fill="#1a3a6e"/>
+                <circle cx="35" cy="22" r="2.5" fill="#1a3a6e"/>
+                <line x1="20" y1="38" x2="8" y2="62"/><line x1="20" y1="38" x2="35" y2="22"/>
+              </g>
+              <g stroke="#00b4b4" stroke-width="2" fill="none">
+                <path d="M102 62 Q100 20 58 10"/><path d="M102 62 Q80 55 58 10"/>
+                <circle cx="90" cy="38" r="2.5" fill="#00b4b4"/>
+                <circle cx="75" cy="22" r="2.5" fill="#00b4b4"/>
+                <line x1="90" y1="38" x2="102" y2="62"/><line x1="90" y1="38" x2="75" y2="22"/>
+              </g>
+              <ellipse cx="55" cy="36" rx="5" ry="6" fill="#E8725A"/>
+            </svg>
+          </div>
+          <p class="loading-title">Escaneando lesión bucal con IA...</p>
+          <div class="loading-steps">
+            <div class="loading-step" id="ls-preprocess"><div class="ls-dot"></div><span>Preprocesando imagen (224×224px)</span></div>
+            <div class="loading-step" id="ls-inference"><div class="ls-dot"></div><span>Ejecutando modelo CNN</span></div>
+            <div class="loading-step" id="ls-gradcam"><div class="ls-dot"></div><span>Generando mapa Grad-CAM</span></div>
+            <div class="loading-step" id="ls-result"><div class="ls-dot"></div><span>Calculando nivel de sospecha</span></div>
+          </div>
+          <div class="loading-bar-track">
+            <div class="loading-bar-fill" id="loading-bar"></div>
+          </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="result-display" class="result-display hidden">
+          <div class="suspicion-meter">
+            <div class="suspicion-level-badge" id="suspicion-badge">
+              <span class="suspicion-icon" id="suspicion-icon">🟢</span>
+              <span class="suspicion-text" id="suspicion-text">Baja Sospecha</span>
+            </div>
+            <div class="probability-ring-container">
+              <svg class="probability-ring" viewBox="0 0 120 120" width="140" height="140">
+                <circle cx="60" cy="60" r="50" stroke="#e8f0f5" stroke-width="10" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke-width="10" fill="none"
+                  stroke-dasharray="314" stroke-dashoffset="314"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"
+                  id="probability-arc" class="probability-arc-circle"/>
+              </svg>
+              <div class="ring-center">
+                <span class="ring-percent" id="ring-percent">0%</span>
+                <span class="ring-label">confianza</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="class-probs" id="class-probs">
+            <h4>Distribución de probabilidades</h4>
+            <div class="prob-bar-group">
+              <div class="prob-bar-row">
+                <span class="prob-label">🟢 Baja sospecha</span>
+                <div class="prob-track"><div class="prob-fill low" id="prob-low" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-low">0%</span>
+              </div>
+              <div class="prob-bar-row">
+                <span class="prob-label">🟡 Moderada</span>
+                <div class="prob-track"><div class="prob-fill moderate" id="prob-moderate" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-moderate">0%</span>
+              </div>
+              <div class="prob-bar-row">
+                <span class="prob-label">🔴 Alta sospecha</span>
+                <div class="prob-track"><div class="prob-fill high" id="prob-high" style="width:0%"></div></div>
+                <span class="prob-pct" id="pct-high">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="recommendation-box" id="recommendation-box">
+            <div class="rec-icon" id="rec-icon">💬</div>
+            <div class="rec-text" id="rec-text"></div>
+          </div>
+
+          <div class="clinical-integration hidden" id="clinical-integration">
+            <h4>Integración riesgo clínico</h4>
+            <div class="clinical-alert" id="clinical-alert"></div>
+          </div>
+
+          <div class="result-meta">
+            <div class="meta-item"><span>Solicitud</span><code id="meta-request-id">—</code></div>
+            <div class="meta-item"><span>Modelo</span><code id="meta-model">—</code></div>
+            <div class="meta-item"><span>Arquitectura</span><code id="meta-arch">—</code></div>
+            <div class="meta-item"><span>Latencia</span><code id="meta-latency">— ms</code></div>
+          </div>
+
+          <div class="result-actions">
+            <button type="button" id="download-pdf-btn" class="btn-pdf">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              Descargar Reporte PDF
+            </button>
+            <button type="button" id="new-analysis-btn" class="btn-outline">Nuevo análisis</button>
+          </div>
+        </div>
+
+        <!-- ERROR -->
+        <div id="result-error" class="result-error hidden">
+          <div class="error-icon">⚠️</div>
+          <p class="error-title" id="error-title">Error al analizar</p>
+          <p class="error-msg" id="error-msg">Ocurrió un problema inesperado.</p>
+          <button type="button" id="retry-btn" class="btn-primary">Reintentar</button>
+        </div>
+      </section>
+
+      <!-- IMPACT CARDS -->
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-icon">🌿</div>
+          <strong>Contexto Bolivia</strong>
+          <small>Atención a zonas con alta prevalencia de consumo de coca y acceso limitado a especialistas</small>
+        </div>
+        <div class="info-card">
+          <div class="info-icon">📄</div>
+          <strong>Reporte de Derivación</strong>
+          <small>PDF generado con resultado, Grad-CAM y recomendación para llevar al médico</small>
+        </div>
+        <div class="info-card">
+          <div class="info-icon">🔒</div>
+          <strong>Anonimato total</strong>
+          <small>No se solicitan datos personales. Código de caso anónimo y temporal</small>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    <div class="wave-footer">
+      <svg viewBox="0 0 1440 60" preserveAspectRatio="none">
+        <path d="M0,30 C360,0 1080,60 1440,30 L1440,60 L0,60 Z" fill="#1a3a6e"/>
+      </svg>
+    </div>
+    <div class="footer-content">
+      <div class="footer-brand">
+        <img src="logo.png" alt="Logo" class="footer-logo" />
+        <div>
+          <span class="brand-oral">Oral</span><span class="brand-diagnostic">Diagnostic</span>
+          <small>Proyecto Nro. 45 · Feria Estudiantil 2026</small>
+        </div>
+      </div>
+      <div class="footer-info">
+        <p>Universidad Autónoma "Gabriel René Moreno" (UAGRM)</p>
+        <p>Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (FICCT)</p>
+        <p>Materia: Programación Ensamblador · Docente: Ing. Valentín Víctor Flores Guzmán</p>
+      </div>
+      <div class="footer-team">
+        <p><strong>Integrantes:</strong></p>
+        <p>Mamani Huanca Saleth Jhoselin &nbsp;·&nbsp; Vaca Roca Guillermo</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

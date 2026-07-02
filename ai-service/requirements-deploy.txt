@@ -1,0 +1,21 @@
+# ============================================================
+# requirements-deploy.txt  —  Deploy en Render (sin TF pesado)
+# Usa ContractFallbackModel para la demo pública
+# Para activar TF real: usar requirements.txt completo
+# ============================================================
+
+fastapi==0.115.6
+uvicorn==0.34.0
+pillow==11.0.0
+numpy==1.26.4
+python-dotenv==1.0.1
+pydantic==2.10.4
+requests==2.34.2
+starlette==0.41.3
+annotated-types==0.7.0
+anyio==4.14.1
+click==8.4.2
+h11==0.16.0
+httptools==0.8.0
+uvloop==0.21.0; sys_platform != "win32"
+watchfiles==1.2.0
