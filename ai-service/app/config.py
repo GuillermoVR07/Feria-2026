@@ -2,6 +2,18 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env explicitly from the ai-service package root so the token is
+# available even if the process is started from a different working dir.
+BASE_DIR = Path(__file__).resolve().parent.parent
+env_path = BASE_DIR / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    # fallback to default behavior
+    load_dotenv()
 
 
 def _bool_env(name: str, default: bool) -> bool:
@@ -35,9 +47,14 @@ class Settings:
 
 
 def get_settings() -> Settings:
+    model_path = os.getenv("AI_MODEL_PATH", "/app/models/oral-lesion-triage-cnn/1.0.0/model.keras")
+    model_path = Path(model_path)
+    if not model_path.is_absolute():
+        model_path = (BASE_DIR / model_path).resolve()
+
     return Settings(
         auth_token=os.getenv("AI_AUTH_TOKEN", ""),
-        model_path=os.getenv("AI_MODEL_PATH", "/app/models/oral-lesion-triage-cnn/1.0.0/model.keras"),
+        model_path=str(model_path),
         model_name=os.getenv("AI_MODEL_NAME", "oral-lesion-triage-cnn"),
         model_version=os.getenv("AI_MODEL_VERSION", "1.0.0"),
         model_architecture=os.getenv("AI_MODEL_ARCHITECTURE", "mobilenetv3-small"),

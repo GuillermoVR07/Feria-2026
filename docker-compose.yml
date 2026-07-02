@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile.full
+    ports:
+      - "8000:8000"
+    environment:
+      AI_AUTH_TOKEN: "change-me-server-only"
+      AI_ENVIRONMENT: "local"
+      AI_MODEL_PATH: "/app/models/oral_lesion_triage_v1.keras"
+      AI_ALLOW_CONTRACT_FALLBACK: "false"
+      AI_REQUIRE_CLINICAL_CHECKPOINT: "true"
+      AI_ENABLE_GRADCAM: "true"
+      AI_REQUIRE_GRADCAM: "true"
+    volumes:
+      - ./ai-service/models:/app/models:rw
+    restart: unless-stopped

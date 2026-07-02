@@ -57,6 +57,42 @@ copy .env.example .env
 uvicorn app.main:app --reload
 ```
 
+Nota: si prefieres un arranque rápido en Windows, usa los scripts provistos:
+
+PowerShell:
+
+```powershell
+cd ai-service
+.\start_dev.ps1
+```
+
+CMD (Windows):
+
+```cmd
+cd ai-service
+start_dev.bat
+```
+
+Los scripts crean un entorno virtual, instalan dependencias y fijan `AI_AUTH_TOKEN` a `change-me-server-only` para desarrollo local.
+
+## Ejecutar con Docker (recomendado para evitar compilación local)
+
+Si tu máquina tiene Docker instalado, la forma más fiable de ejecutar el servicio real (con TensorFlow y dependencias) es usando `docker-compose` desde la raíz del repo:
+
+```bash
+docker compose build ai-service
+docker compose up ai-service
+```
+
+Esto construirá la imagen usando `Dockerfile.full` (incluye todas las dependencias) y expondrá el servicio en `http://localhost:8000`.
+
+Variables de entorno importantes (se pueden cambiar en `docker-compose.yml`):
+
+- `AI_AUTH_TOKEN`: token usado por el frontend / funciones (por defecto en el compose: `change-me-server-only`).
+- `AI_ALLOW_CONTRACT_FALLBACK`: si `true`, usa un fallback ligero cuando no exista un checkpoint.
+
+Montaje de modelos: el `docker-compose.yml` mapea `ai-service/models` al contenedor en `/app/models`. Si tienes un checkpoint `.keras`, colócalo ahí y ajusta `AI_MODEL_PATH` si es necesario.
+
 ## Variables principales
 
 ```env

@@ -7,7 +7,10 @@ const _apiMeta = document.querySelector('meta[name="api-base"]');
 const API_BASE  = (_apiMeta && _apiMeta.content && _apiMeta.content !== '__API_BASE__')
   ? _apiMeta.content.replace(/\/$/, '')
   : 'http://localhost:8000';
-const API_TOKEN = 'demo-token-expo-2026';
+const _apiTokenMeta = document.querySelector('meta[name="api-token"]');
+const API_TOKEN = (_apiTokenMeta && _apiTokenMeta.content && _apiTokenMeta.content !== '__API_TOKEN__')
+  ? _apiTokenMeta.content
+  : 'change-me-server-only';
 
 console.log('[OralDiagnostic] API Base:', API_BASE);
 
