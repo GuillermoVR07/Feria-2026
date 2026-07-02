@@ -1,0 +1,27 @@
+{
+  "model_name": "oral-lesion-triage-cnn",
+  "model_version": "1.0.0",
+  "architecture": "mobilenetv3-small",
+  "classes": [
+    "high",
+    "low",
+    "moderate"
+  ],
+  "class_order": {
+    "0": "high",
+    "1": "low",
+    "2": "moderate"
+  },
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "training_date": "2026-07-01T17:21:01.436305",
+  "accuracy": 0.7056,
+  "auc_roc_macro": NaN,
+  "trained_on": "Kaggle Oral Cancer Dataset",
+  "fine_tuned": true,
+  "epochs_head": 10,
+  "epochs_finetune": 15
+}

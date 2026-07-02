@@ -19,8 +19,9 @@ class OralLesionInferenceRequest(BaseModel):
     request_id: str | None = None
     case_id: UUID | None = None
     case_code: str | None = None
-    image_id: UUID | str
-    image_url: HttpUrl
+    image_id: UUID | str | None = None
+    image_url: HttpUrl | None = None
+    image_base64: str | None = None
     model: ModelInfo | None = None
     model_name: str | None = None
     model_version: str | None = None

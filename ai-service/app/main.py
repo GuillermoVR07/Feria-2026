@@ -68,7 +68,16 @@ def oral_lesion_inference(
 
     try:
         loaded_model = get_loaded_model(settings)
-        image_bytes = download_image_bytes(str(payload.image_url), settings)
+        import base64
+        if payload.image_base64:
+            b64_data = payload.image_base64
+            if "," in b64_data:
+                b64_data = b64_data.split(",")[1]
+            image_bytes = base64.b64decode(b64_data)
+        elif payload.image_url:
+            image_bytes = download_image_bytes(str(payload.image_url), settings)
+        else:
+            raise ValueError("No se proporcionó image_url ni image_base64")
         original_image = decode_image(image_bytes)
         batch = image_to_model_array(original_image, settings)
         prediction = run_prediction(loaded_model, batch, settings)

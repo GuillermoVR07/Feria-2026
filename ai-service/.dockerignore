@@ -4,7 +4,7 @@ __pycache__/
 app/__pycache__/
 tests/__pycache__/
 .pytest_cache/
-models/**/*.keras
+
 models/**/*.h5
 models/**/*.onnx
 models/**/*.pt

@@ -15,21 +15,17 @@ class GradcamUnavailable(RuntimeError):
     pass
 
 
-def _find_last_conv_layer(model: Any) -> str:
+def _find_last_conv_layer(model: Any) -> Any:
     try:
         import tensorflow as tf
     except Exception as exc:
         raise GradcamUnavailable("TensorFlow no esta disponible.") from exc
 
     for layer in reversed(model.layers):
-        if isinstance(layer, tf.keras.layers.Conv2D):
-            return layer.name
-        if hasattr(layer, "layers"):
-            for inner in reversed(layer.layers):
-                if isinstance(inner, tf.keras.layers.Conv2D):
-                    return inner.name
+        if hasattr(layer, "output_shape") and len(layer.output_shape) == 4:
+            return layer
 
-    raise GradcamUnavailable("No se encontro capa convolucional para Grad-CAM.")
+    raise GradcamUnavailable("No se encontro capa convolucional (4D) para Grad-CAM.")
 
 
 def _overlay_heatmap(original: Image.Image, heatmap: np.ndarray) -> str:
@@ -61,19 +57,28 @@ def generate_gradcam(
         raise GradcamUnavailable("TensorFlow no esta disponible para Grad-CAM.") from exc
 
     model = loaded_model.model
-    layer_name = _find_last_conv_layer(model)
-
-    try:
-        grad_model = tf.keras.models.Model(
-            inputs=model.inputs,
-            outputs=[model.get_layer(layer_name).output, model.output],
-        )
-    except Exception as exc:
-        raise GradcamUnavailable("No se pudo construir el modelo Grad-CAM.") from exc
+    target_layer = _find_last_conv_layer(model)
 
     model_input = preprocess_input(np.array(batch, copy=True))
     with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(model_input)
+        x = model_input
+        conv_outputs = None
+        for l in model.layers:
+            if isinstance(l, tf.keras.layers.InputLayer):
+                continue
+            try:
+                x = l(x, training=False)
+            except TypeError:
+                x = l(x)
+                
+            if l == target_layer:
+                conv_outputs = x
+                
+        predictions = x
+        
+        if conv_outputs is None:
+            raise GradcamUnavailable("No se pudo obtener la salida de la capa convolucional.")
+
         safe_index = min(class_index, int(predictions.shape[-1]) - 1)
         loss = predictions[:, safe_index]
 
@@ -84,8 +89,10 @@ def generate_gradcam(
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
     conv_outputs = conv_outputs[0]
     heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
-    heatmap = tf.squeeze(heatmap)
+    heatmap = tf.squeeze(heatmap) if len(heatmap.shape) > 2 else heatmap
     heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
     heatmap_array = heatmap.numpy()
+    if heatmap_array.ndim < 2:
+        heatmap_array = np.atleast_2d(heatmap_array)
 
     return _overlay_heatmap(original, heatmap_array)

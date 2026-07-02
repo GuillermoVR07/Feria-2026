@@ -46,7 +46,7 @@ def load_model(settings: Settings) -> LoadedModel:
                 warnings=[],
             )
         except Exception as exc:
-            raise ModelLoadError("No se pudo cargar el checkpoint configurado.") from exc
+            raise ModelLoadError(f"No se pudo cargar el checkpoint configurado: {exc}") from exc
 
     if settings.require_clinical_checkpoint:
         raise ModelLoadError("No existe checkpoint clinico adaptado en AI_MODEL_PATH.")

@@ -350,10 +350,19 @@ async function runAnalysis() {
   animateLoadingSteps();
 
   try {
-    const demoImageUrl = 'https://www.gstatic.com/webp/gallery/1.jpg';
+    const base64Promise = new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(currentFile);
+    });
+    const currentImageBase64 = await base64Promise;
+
+    const demoImageUrl = 'https://www.gstatic.com/webp/gallery/1.jpg'; // Fallback
     const payload = {
       image_id:   generateUUID(),
       image_url:  demoImageUrl,
+      image_base64: currentImageBase64,
       case_code:  caseCodeInput.value || 'ORAL-DEMO',
       request_id: generateUUID(),
     };
